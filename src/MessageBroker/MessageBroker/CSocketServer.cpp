@@ -11,6 +11,7 @@ CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClien
 	m_sockAccept(INVALID_SOCKET), lpfnAccessEx(NULL)
 {
 	ZeroMemory(&m_overlap, sizeof(m_overlap));
+	m_overlap.hEvent = CreateEvent(NULL, true, false, NULL);  //create a event for OVERLAPPED obj
 
 	m_sockListen = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (m_sockListen == INVALID_SOCKET) {
@@ -68,7 +69,7 @@ CSocketServer::~CSocketServer() {
 		CLOSESOCK(m_sockAccept);
 	}
 
-
+	CloseHandle(m_overlap.hEvent);
 }
 
 bool CSocketServer::StartListen() {
@@ -98,7 +99,7 @@ bool CSocketServer::StartListen() {
 		sizeof(SOCKADDR_STORAGE) + 16,
 		sizeof(SOCKADDR_STORAGE) + 16,
 		&dwBytes,
-		&m_overlap  //get overlap structure
+		&m_overlap  //get overlap structure, OVERLAPPED' hEvent is signaled when new connection
 	)) {
 		if (WSA_IO_PENDING != WSAGetLastError()) {
 			log_e("AcceptEx failed with error: %d", WSAGetLastError());
@@ -109,6 +110,74 @@ bool CSocketServer::StartListen() {
 	}
 
 	return true;
+}
+
+SOCKET CSocketServer::WaitForNewConnection() {
+	DWORD index = WaitForMultipleObjects(1, &(m_overlap.hEvent), true, INFINITE);
+	if (index == 0) {
+		log_e("new connection!");
+		ResetEvent(m_overlap.hEvent);
+
+		SOCKET temp = m_sockAccept;
+		/*if (m_newclientCallback != nullptr) {
+			m_newclientCallback(temp);
+		}*/
+		m_sockAccept = INVALID_SOCKET;
+		return temp;
+	}
+}
+
+void CSocketServer::OnComplete() {
+	DWORD bytes = 0;
+	DWORD flags = 0;
+
+	//TODO: does new connection trigger will let WSAGetOverlappedResult or just data transferring?
+	if (!WSAGetOverlappedResult(m_sockListen,
+		&m_overlap,
+		&bytes,
+		true,  // flag that specifies whether the function should wait for the pending overlapped operation to complete. 
+		&flags)) {
+		if (WSAGetLastError() != WSA_IO_INCOMPLETE) {
+			log_e("WSAGetOverlappedResult failed with error: %d", WSAGetLastError());
+			return;
+		}
+	}
+
+	//check m_sockAccept
+	char buf[512];
+	WSABUF dataBuf;
+	dataBuf.buf = buf;
+	dataBuf.len = 512;
+
+	if (SOCKET_ERROR == WSARecv(m_sockAccept, &dataBuf, 1, &bytes, &flags, &m_overlap, NULL)) {
+		if (WSA_IO_PENDING == WSAGetLastError()) {
+			log_e("WSARecv failed with error: %d", WSAGetLastError());
+			return;
+		}
+	}
+
+	DWORD result = WSAWaitForMultipleEvents(1, &m_overlap.hEvent, true, INFINITE, true);
+	if (result == WSA_WAIT_FAILED) {
+		log_e("WSAWaitForMultipleEvents failed");
+		return;
+	}
+
+	if (!WSAGetOverlappedResult(m_sockAccept, 
+		&m_overlap, 
+		&bytes, 
+		true,
+		&flags))
+	{
+		log_e("WSAGetOverlappedResult failed");
+		return;
+	}
+
+	dataBuf.buf[bytes] = '\0';
+	log_e("bytes received: %d\n %s", bytes, dataBuf.buf);
+}
+
+void CSocketServer::completionRoutine(DWORD dwError, DWORD cbTransferred, LPOVERLAPPED lpOverlapped, DWORD dwFlags) {
+
 }
 
 bool CSocketServer::Shutdown() {

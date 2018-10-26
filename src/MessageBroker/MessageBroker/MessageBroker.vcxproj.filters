@@ -27,6 +27,9 @@
     <ClInclude Include="SockHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CSocketRWObj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -42,6 +45,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SockHelper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CSocketRWObj.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

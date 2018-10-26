@@ -152,12 +152,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CSocketCtrl.h" />
+    <ClInclude Include="CSocketRWObj.h" />
     <ClInclude Include="CSocketServer.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="SockHelper.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CSocketCtrl.cpp" />
+    <ClCompile Include="CSocketRWObj.cpp" />
     <ClCompile Include="CSocketServer.cpp" />
     <ClCompile Include="MessageBroker.cpp" />
     <ClCompile Include="pch.cpp">
