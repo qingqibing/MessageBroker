@@ -132,6 +132,7 @@ bool CSocketRWObj::Wait() {
 
 	//NOTE that: the hEvent is not in signaled state, It's the completionRoutine that end
 	//the wait state
+	//msdn : https://docs.microsoft.com/en-us/windows/desktop/api/winsock2/nf-winsock2-wsawaitformultipleevents
 	DWORD index = WSAWaitForMultipleEvents(cnt, &(m_overlap.hEvent), true, INFINITE, true);
 	if (index >= WAIT_OBJECT_0 && index < WAIT_OBJECT_0 +cnt) {
 		//m_overlap.hEvent = this;

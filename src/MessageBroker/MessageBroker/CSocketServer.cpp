@@ -11,7 +11,7 @@ CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClien
 	m_sockAccept(INVALID_SOCKET), lpfnAccessEx(NULL)
 {
 	ZeroMemory(&m_overlap, sizeof(m_overlap));
-	m_overlap.hEvent = CreateEvent(NULL, true, false, NULL);  //create a event for OVERLAPPED obj
+	m_overlap.hEvent = CreateEvent(NULL, false, false, NULL);  //create a event for OVERLAPPED obj
 
 	m_sockListen = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (m_sockListen == INVALID_SOCKET) {
