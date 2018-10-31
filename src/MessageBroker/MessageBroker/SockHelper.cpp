@@ -28,3 +28,14 @@ void SockHelper::PrintError(const char* format, va_list args) {
 }
 
 //TODO: use modern c++ way to implement va_args print error
+
+bool SockHelper::is_sock_connected(SOCKET s) {
+	int result = 0;
+	char buf;
+	result = recv(s, &buf, 1, MSG_PEEK);
+	if (result == SOCKET_ERROR) {
+		return false;
+	}
+
+	return true;
+}

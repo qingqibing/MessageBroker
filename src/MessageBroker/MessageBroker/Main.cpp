@@ -15,12 +15,13 @@
 #include "CSocketServer.h"
 #include "CSocketRWObj.h"
 #include "CSockConnection.h"
+#include "SockHelper.h"
 
 #define SVR_PORT 15555
+#define TIME_OUT 1000  //default time out value: 200ms
 
 using json = nlohmann::json;
 
-//static std::vector<HANDLE> g_handles;  //store all the handlers here, need to be improved
 static std::vector<std::shared_ptr<CSockConnection>> g_conns; //all client accept connection
 static std::mutex g_mutex;
 
@@ -51,12 +52,12 @@ void sock_recv_complete(SOCKET s, char* buf, int len) {
 			continue;
 		}
 
-		if (is_sock_invalid(sock)) {
-			std::cout << "socket invalid: " << s << " , will be erased!" << std::endl;
-			it = g_conns.erase(it);
-			//g_handles.erase((*it)->addtoHandles)
-			continue;
-		}
+		//if (is_sock_invalid(sock)) {
+		//	std::cout << "socket invalid: " << s << " , will be erased!" << std::endl;
+		//	it = g_conns.erase(it);
+		//	//g_handles.erase((*it)->addtoHandles)
+		//	continue;
+		//}
 
 		send_to_peers((*it).get(), buf, len);
 		++it;
@@ -126,7 +127,7 @@ void test() {
 	while (1)
 	{
 		auto cnt = EventManager::getInstance().handle_size();
-		DWORD index = WaitForMultipleObjectsEx(cnt, EventManager::getInstance().get_handles().data(), false, INFINITE, true);
+		DWORD index = WaitForMultipleObjectsEx(cnt, EventManager::getInstance().get_handles().data(), false, TIME_OUT, true);
 		if (index >= WAIT_OBJECT_0 && index < WAIT_OBJECT_0 + cnt) {
 			if (index == WAIT_OBJECT_0) {
 				//new connection
@@ -147,7 +148,16 @@ void test() {
 			std::cout << "WSAWaitForMultipleEvents failed with error: " << GetLastError() << std::endl;
 		}
 		else if (index == WAIT_TIMEOUT) {
-			//can not happen here, because we use INFINITE
+			auto it = g_conns.cbegin();
+			while (it != g_conns.cend()) {
+				auto sock = (*it)->getSocket();
+				if (!SockHelper::is_sock_connected(sock)) {
+					std::cout << "socket invalid: " << sock << " , will be erased!" << std::endl;
+					it = g_conns.erase(it);
+					continue;
+				}
+				++it;
+			}
 		}
 	}
 

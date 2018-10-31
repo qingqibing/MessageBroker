@@ -11,4 +11,5 @@ public:
 	static void PrintError(const std::string& func_name);
 	static void PrintError(const char* format, ...);
 	static void PrintError(const char* format, va_list args);
+	static bool is_sock_connected(SOCKET s);
 };
