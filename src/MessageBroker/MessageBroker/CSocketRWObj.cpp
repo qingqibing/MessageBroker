@@ -11,6 +11,7 @@ CSocketRWObj::CSocketRWObj(SOCKET s, bool isRead, OnReadComplete cbReadComplete,
 	//if overlapped io use completeroutine, then OVERLAPPED'S hEvent 
 	//can be use to pass context infomation
 	m_overlap.hEvent = CreateEvent(NULL, false, false, NULL);
+	EventManager::getInstance().AddEvent(m_overlap.hEvent);
 
 	//TODO: actualy only need one buffer because of CSocketRWObj instance will
 	//only do one job(Read/Write)
@@ -24,6 +25,7 @@ CSocketRWObj::~CSocketRWObj() {
 
 	//delete[] m_recvBuf;
 	//delete[] m_recvBuf;
+	EventManager::getInstance().RemoveEvent(m_overlap.hEvent);
 	CloseHandle(m_overlap.hEvent);
 	delete[] m_buf;
 }
@@ -188,8 +190,4 @@ bool CSocketRWObj::Wait() {
 	}
 
 	return false;
-}
-
-void addToEventManager(EventManager& manager, CSocketRWObj& sockObj) {
-	manager.m_handles.push_back(sockObj.m_overlap.hEvent);
 }

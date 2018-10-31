@@ -23,7 +23,6 @@ public:
 	SOCKET WaitForNewConnection();
 	void OnComplete();
 	SOCKET GetAcceptSock();
-	void addtoEventManager(EventManager& manager);
 
 private:
 	const std::string& m_addr;

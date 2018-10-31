@@ -7,6 +7,7 @@
 #include <WS2tcpip.h>
 #include <thread>
 #include <mutex>
+#include <memory>
 
 #include "../lib/json.hpp"
 
@@ -19,11 +20,9 @@
 
 using json = nlohmann::json;
 
-static std::vector<HANDLE> g_handles;  //store all the handlers here, need to be improved
-static std::vector<CSockConnection*> g_conns; //all client accept connection
+//static std::vector<HANDLE> g_handles;  //store all the handlers here, need to be improved
+static std::vector<std::shared_ptr<CSockConnection>> g_conns; //all client accept connection
 static std::mutex g_mutex;
-static EventManager g_eventManager;
-
 
 void send_to_peers(CSockConnection* conn, char* buf, int len) {
 	conn->write(buf, len);
@@ -55,10 +54,11 @@ void sock_recv_complete(SOCKET s, char* buf, int len) {
 		if (is_sock_invalid(sock)) {
 			std::cout << "socket invalid: " << s << " , will be erased!" << std::endl;
 			it = g_conns.erase(it);
+			//g_handles.erase((*it)->addtoHandles)
 			continue;
 		}
 
-		send_to_peers(*it, buf, len);
+		send_to_peers((*it).get(), buf, len);
 		++it;
 	}
 }
@@ -67,10 +67,9 @@ void on_new_client(SOCKET s) {
 	std::lock_guard<std::mutex> lock(g_mutex);
 
 	std::cout << "new connection:" << s << std::endl;
-	CSockConnection* conn = new CSockConnection(s, sock_recv_complete);
-	conn->addtoHandles(g_eventManager);
+	std::shared_ptr<CSockConnection> conn = std::make_shared<CSockConnection>(s, sock_recv_complete);
+	//CSockConnection* conn = new CSockConnection(s, sock_recv_complete);
 	g_conns.push_back(conn);
-	g_eventManager.SignalDummyEvent();
 }
 
 
@@ -111,20 +110,6 @@ bool IsQuit(HANDLE h) {
 	return false;
 }
 
-
-void test2() {
-	CSocketCtrl::Startup();
-
-	CSocketServer server("127.0.0.1", SVR_PORT, on_new_client);
-	//server.addtoEventManager(g_eventManager);
-	for (int i = 0; i < 2;++i) {
-		server.StartListen();
-		SOCKET s = server.WaitForNewConnection();
-		//on_new_client(s);
-	}
-
-}
-
 void test() {
 	CSocketCtrl::Startup();
 
@@ -135,14 +120,13 @@ void test() {
 
 	//std::thread t(thread_entry);
 	CSocketServer server("127.0.0.1", SVR_PORT, on_new_client);
-	server.addtoEventManager(g_eventManager);
 	server.StartListen();
 
 	std::cout << "server is listening on port "<<SVR_PORT << std::endl;
 	while (1)
 	{
-		auto cnt = g_eventManager.m_handles.size();
-		DWORD index = WaitForMultipleObjectsEx(cnt, g_eventManager.m_handles.data(), false, INFINITE, true);
+		auto cnt = EventManager::getInstance().handle_size();
+		DWORD index = WaitForMultipleObjectsEx(cnt, EventManager::getInstance().get_handles().data(), false, INFINITE, true);
 		if (index >= WAIT_OBJECT_0 && index < WAIT_OBJECT_0 + cnt) {
 			if (index == WAIT_OBJECT_0) {
 				//new connection

@@ -165,6 +165,7 @@
     <ClCompile Include="CSocketCtrl.cpp" />
     <ClCompile Include="CSocketRWObj.cpp" />
     <ClCompile Include="CSocketServer.cpp" />
+    <ClCompile Include="EventManager.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MessageBroker.cpp" />
     <ClCompile Include="pch.cpp">

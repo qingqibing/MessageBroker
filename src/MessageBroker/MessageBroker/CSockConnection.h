@@ -15,7 +15,6 @@ public:
 	const SOCKET getSocket() const { return m_sock; }
 	void write(char* buf, int len);
 	void read();
-	void addtoHandles(EventManager& manager);
 
 private:
 

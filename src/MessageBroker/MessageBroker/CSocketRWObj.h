@@ -10,7 +10,6 @@
 //TODO: devide this clas to ReadObj and WriteObj
 class CSocketRWObj
 {
-	friend void addToEventManager(EventManager& manager, CSocketRWObj& sockObj);
 public:
 	typedef void(*OnReadComplete)(const SOCKET s, char* data, int len);  //read complete callback
 	typedef void(*OnWriteComplete)(size_t bytes);  //write complete callback
@@ -24,11 +23,7 @@ public:
 	void Read(/*char* pBuf, int len*/);
 	void Write(const char* pBuf, int len);
 
-	/*
-	TODO: need improvements
-	just for test
-
-	*/
+	//blocking wait method, obsolete
 	bool Wait();
 
 private:

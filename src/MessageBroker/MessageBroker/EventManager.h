@@ -1,20 +1,26 @@
 #pragma once
 
 #include <vector>
-#include <winnt.h>
+#include <Windows.h>
+#include <mutex>
 
+
+//singleton
 class EventManager {
 public:
-	EventManager() /*: m_hEvent(CreateEvent(NULL, false, false, NULL))*/ {
-		//m_handles.push_back(m_hEvent);
-	}
+	static EventManager& getInstance();
 	~EventManager() = default;
 
-	void SignalDummyEvent() { /*SetEvent(m_hEvent); */}
+	EventManager(const EventManager&) = delete;
+	EventManager& operator=(const EventManager&) = delete;
 
-	std::vector<HANDLE> m_handles;
+	void AddEvent(HANDLE h);
+	bool RemoveEvent(HANDLE h);
+	size_t handle_size() const { return m_hEvents.size(); }
+	const std::vector<HANDLE>& get_handles() { return m_hEvents; }
 
 private:
-
-	/*HANDLE m_hEvent;*/
+	EventManager() = default;
+	std::mutex m_mutex;
+	std::vector<HANDLE> m_hEvents;
 };
