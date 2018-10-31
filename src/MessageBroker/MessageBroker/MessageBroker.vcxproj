@@ -151,16 +151,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="CSockConnection.h" />
     <ClInclude Include="CSocketCtrl.h" />
     <ClInclude Include="CSocketRWObj.h" />
     <ClInclude Include="CSocketServer.h" />
+    <ClInclude Include="EventManager.h" />
+    <ClInclude Include="MessageBroker.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="SockHelper.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CSockConnection.cpp" />
     <ClCompile Include="CSocketCtrl.cpp" />
     <ClCompile Include="CSocketRWObj.cpp" />
     <ClCompile Include="CSocketServer.cpp" />
+    <ClCompile Include="Main.cpp" />
     <ClCompile Include="MessageBroker.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

@@ -49,20 +49,22 @@ void CSocketRWObj::Read(/*char* pBuf, int len*/) {
 	)) {
 		if (WSA_IO_PENDING != WSAGetLastError()) {
 			SockHelper::PrintError("WSARecv");
+			std::cout << "close sock: " << m_sock << std::endl;
+			CLOSESOCK(m_sock);
 			return;
 		}
 	}
 
 }
 
-void CSocketRWObj::Write(char* pBuf, int len) {
+void CSocketRWObj::Write(const char* pBuf, int len) {
 	WSABUF dataBuf;
-	dataBuf.buf = pBuf;
+	dataBuf.buf = const_cast<char*>(pBuf);
 	dataBuf.len = len;
 
 	DWORD bytes = 0;
 	//DWORD flags = 0;
-	std::cout << "ready to send: " << pBuf << std::endl;
+	std::cout << "ready to send to client: " << m_sock << " , data: "<<pBuf << std::endl;
 
 	if (SOCKET_ERROR == WSASend(m_sock,
 		&dataBuf,
@@ -73,6 +75,8 @@ void CSocketRWObj::Write(char* pBuf, int len) {
 		completeRoutine)) {
 		if (WSA_IO_PENDING != WSAGetLastError()) {
 			SockHelper::PrintError("WSASend");
+			std::cout << "close sock: " << m_sock << std::endl;
+			CLOSESOCK(m_sock);
 			return;
 		}
 	}
@@ -90,24 +94,52 @@ void CSocketRWObj::Complete() {
 		false,
 		&flags
 	)) {
-		SockHelper::PrintError("WSAGetOverlappedResult");
-		return;
+		if (WSA_IO_PENDING != WSAGetLastError()) {
+			SockHelper::PrintError("WSAGetOverlappedResult");
+			std::cout << "close sock: " << m_sock << std::endl;
+			if (SOCKET_ERROR == shutdown(m_sock, SD_RECEIVE)) {
+				SockHelper::PrintError("shutdown");
+			}
+			CLOSESOCK(m_sock);
+			return;
+		}
 	}
 
+
 	if (m_isRead) {
-		m_buf[bytes] = '\0';  //TODO: if bytes == recvBuf size??
-		std::cout << "recved: " << bytes << " bytes.\n" << m_buf << std::endl;
-		if (m_cbRead != nullptr) {
-			char temp[DEFAULT_BUF_SIZE];
-			memcpy_s(temp, DEFAULT_BUF_SIZE, m_buf, bytes +1);  //copy last '\0'
-			m_cbRead(temp, bytes);
+		if (bytes > 0) {
+			m_buf[bytes] = '\0';  //TODO: if bytes == recvBuf size??
+			std::cout << "recved: " << bytes << " bytes.\n" << m_buf << std::endl;
+			if (m_cbRead != nullptr) {
+				char temp[DEFAULT_BUF_SIZE];
+				memcpy_s(temp, DEFAULT_BUF_SIZE, m_buf, bytes + 1);  //copy last '\0'
+				m_cbRead(m_sock, temp, bytes);
+			}
 		}
+		//else {
+		//	//bytes == 0
+		//	if (SOCKET_ERROR == shutdown(m_sock, SD_RECEIVE)) {
+		//		SockHelper::PrintError("shutdown");
+		//		CLOSESOCK(m_sock);
+		//		return;
+		//	}
+		//}
 	}
 	else {
 		std::cout << "sent: " << bytes << " bytes.\n" << std::endl;
-		if (m_cbWrite != nullptr) {
-			m_cbWrite(bytes);
+		if (bytes > 0) {
+			if (m_cbWrite != nullptr) {
+				m_cbWrite(bytes);
+			}
 		}
+		//else {
+		//	//bytes == 0
+		//	if (SOCKET_ERROR == shutdown(m_sock, SD_SEND)) {
+		//		SockHelper::PrintError("shutdown");
+		//		CLOSESOCK(m_sock);
+		//		return;
+		//	}
+		//}
 	}
 
 }
@@ -156,4 +188,8 @@ bool CSocketRWObj::Wait() {
 	}
 
 	return false;
+}
+
+void addToEventManager(EventManager& manager, CSocketRWObj& sockObj) {
+	manager.m_handles.push_back(sockObj.m_overlap.hEvent);
 }

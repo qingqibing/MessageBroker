@@ -3,6 +3,7 @@
 #include "pch.h"
 #include "CSocketCtrl.h"
 #include <MSWSock.h>
+#include "EventManager.h"
 
 typedef void(*OnNewClient)(SOCKET s);
 //implement the basic socketserver
@@ -21,6 +22,8 @@ public:
 	bool Shutdown();
 	SOCKET WaitForNewConnection();
 	void OnComplete();
+	SOCKET GetAcceptSock();
+	void addtoEventManager(EventManager& manager);
 
 private:
 	const std::string& m_addr;

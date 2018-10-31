@@ -1,14 +1,18 @@
 #pragma once
 
 #include <WinSock2.h>
+#include <vector>
+
+#include "EventManager.h"
 
 #define DEFAULT_BUF_SIZE 1024
 
 //TODO: devide this clas to ReadObj and WriteObj
 class CSocketRWObj
 {
+	friend void addToEventManager(EventManager& manager, CSocketRWObj& sockObj);
 public:
-	typedef void(*OnReadComplete)(char* data, int len);  //read complete callback
+	typedef void(*OnReadComplete)(const SOCKET s, char* data, int len);  //read complete callback
 	typedef void(*OnWriteComplete)(size_t bytes);  //write complete callback
 
 	CSocketRWObj(SOCKET s, bool isRead, OnReadComplete cbReadComplete, OnWriteComplete cbWriteComplete);
@@ -18,7 +22,7 @@ public:
 	CSocketRWObj& operator=(const CSocketRWObj&) = delete;
 
 	void Read(/*char* pBuf, int len*/);
-	void Write(char* pBuf, int len);
+	void Write(const char* pBuf, int len);
 
 	/*
 	TODO: need improvements

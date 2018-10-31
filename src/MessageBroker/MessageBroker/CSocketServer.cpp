@@ -5,6 +5,8 @@
 #include "SockHelper.h"
 #include <Mswsock.h>
 #include <stdarg.h>
+#include <vector>
+#include <cassert>
 
 CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClient newclientCallback)
 	: m_addr(addr), m_port(port), m_newclientCallback(newclientCallback), m_sockListen(INVALID_SOCKET),
@@ -116,7 +118,7 @@ SOCKET CSocketServer::WaitForNewConnection() {
 	DWORD index = WaitForMultipleObjects(1, &(m_overlap.hEvent), true, INFINITE);
 	if (index == 0) {
 		log_e("new connection!");
-		ResetEvent(m_overlap.hEvent);
+		//ResetEvent(m_overlap.hEvent);
 
 		SOCKET temp = m_sockAccept;
 		/*if (m_newclientCallback != nullptr) {
@@ -201,6 +203,20 @@ bool CSocketServer::Shutdown() {
 
 	CLOSESOCK(m_sockAccept);
 	return true;
+}
+
+void CSocketServer::addtoEventManager(EventManager& manager) {
+	manager.m_handles.push_back(m_overlap.hEvent);
+}
+
+
+SOCKET CSocketServer::GetAcceptSock() {
+	if (m_sockAccept == INVALID_SOCKET)
+		assert(0);
+
+	SOCKET temp = m_sockAccept;
+	m_sockAccept = INVALID_SOCKET;
+	return temp;
 }
 
 void CSocketServer::log_e(const char* format, ...) {
