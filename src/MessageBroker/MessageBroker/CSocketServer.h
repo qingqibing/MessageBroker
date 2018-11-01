@@ -4,11 +4,12 @@
 #include "CSocketCtrl.h"
 #include <MSWSock.h>
 #include "EventManager.h"
+#include "AsyncObj.h"
 
 typedef void(*OnNewClient)(SOCKET s);
 //implement the basic socketserver
 //without business logic in it
-class CSocketServer
+class CSocketServer : public EventObj
 {
 public:
 	CSocketServer(const std::string& address, const int port, OnNewClient newclientCallback);
@@ -32,7 +33,6 @@ private:
 	SOCKET m_sockListen;
 	SOCKET m_sockAccept;
 	LPFN_ACCEPTEX lpfnAccessEx;
-	OVERLAPPED m_overlap;
 
 	void log_e(const char* format, ...);
 	void completionRoutine(DWORD dwError, DWORD cbTransferred, LPOVERLAPPED lpOverlapped, DWORD dwFlags);

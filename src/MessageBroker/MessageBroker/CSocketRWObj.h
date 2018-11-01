@@ -4,11 +4,12 @@
 #include <vector>
 
 #include "EventManager.h"
+#include "AsyncObj.h"
 
 #define DEFAULT_BUF_SIZE 1024
 
 //TODO: devide this clas to ReadObj and WriteObj
-class CSocketRWObj
+class CSocketRWObj : public EventObj
 {
 public:
 	typedef void(*OnReadComplete)(const SOCKET s, char* data, int len);  //read complete callback
@@ -28,10 +29,7 @@ public:
 
 private:
 	SOCKET m_sock;
-	OVERLAPPED m_overlap;
 
-	//char* m_recvBuf;
-	//char* m_sendBuf;
 	char* m_buf;
 
 	const bool m_isRead;  //indicate whether is used for read or write

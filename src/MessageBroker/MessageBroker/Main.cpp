@@ -16,9 +16,11 @@
 #include "CSocketRWObj.h"
 #include "CSockConnection.h"
 #include "SockHelper.h"
+#include "TimerWrapper.h"
+#include "ILog.h"
 
 #define SVR_PORT 15555
-#define TIME_OUT 1000  //default time out value: 200ms
+#define TIME_OUT 1000  //default time out value: 1s
 
 using json = nlohmann::json;
 
@@ -69,11 +71,10 @@ void on_new_client(SOCKET s) {
 
 	std::cout << "new connection:" << s << std::endl;
 	std::shared_ptr<CSockConnection> conn = std::make_shared<CSockConnection>(s, sock_recv_complete);
-	//CSockConnection* conn = new CSockConnection(s, sock_recv_complete);
 	g_conns.push_back(conn);
 }
 
-
+//GetStdHandle
 bool IsQuit(HANDLE h) {
 	DWORD fdwSaveOldMode, fdwMode;
 	INPUT_RECORD irBuf[128];
@@ -112,6 +113,7 @@ bool IsQuit(HANDLE h) {
 }
 
 void test() {
+
 	CSocketCtrl::Startup();
 
 	//HANDLE hin = GetStdHandle(STD_INPUT_HANDLE);
@@ -119,22 +121,38 @@ void test() {
 	//	return;
 	//}
 
-	//std::thread t(thread_entry);
+	const long SUICIDE_DELAY_TIME = 10 * 1000;//3 * 60 * 1000;  //miliseconds
+
+	//create a waitable timer
+	TimerWrapper tw(SUICIDE_DELAY_TIME);
+	if (!tw.StartTimer()) {
+		return;
+	}
+
+	EventManager::getInstance().AddEvent(tw.getHandle());  //add waitable timer's handle to the first element in EventManager
+
 	CSocketServer server("127.0.0.1", SVR_PORT, on_new_client);
 	server.StartListen();
 
-	std::cout << "server is listening on port "<<SVR_PORT << std::endl;
+	std::cout << "server is listening on port " << SVR_PORT << std::endl;
+
 	while (1)
 	{
 		auto cnt = EventManager::getInstance().handle_size();
 		DWORD index = WaitForMultipleObjectsEx(cnt, EventManager::getInstance().get_handles().data(), false, TIME_OUT, true);
 		if (index >= WAIT_OBJECT_0 && index < WAIT_OBJECT_0 + cnt) {
 			if (index == WAIT_OBJECT_0) {
-				//new connection
+				//timer singnaled
+				break;
+			}
+			else if (index == WAIT_OBJECT_0 + 1) {
+				//new connection, the second HANDLE in EventManager is NEW socket connection
 				on_new_client(server.GetAcceptSock());
 				server.StartListen();
+				if (!tw.CancelTimer()) {//once new client is connected, stop the timer
+					break;  //error happen
+				}
 			}
-
 		}
 		else if (index == WAIT_IO_COMPLETION) {
 			/*
@@ -143,14 +161,19 @@ void test() {
 			the WSAWaitForMultipleEvents function again.This return value can only be returned
 			if the fAlertable parameter is TRUE.
 			*/
+
+			//do nothing
 		}
 		else if (index == WAIT_FAILED) {
-			std::cout << "WSAWaitForMultipleEvents failed with error: " << GetLastError() << std::endl;
+			StdLogger::me().log_e("WaitForMultipleObjectsEx");
 		}
 		else if (index == WAIT_TIMEOUT) {
 			auto it = g_conns.cbegin();
 			while (it != g_conns.cend()) {
 				auto sock = (*it)->getSocket();
+
+				//TODO: can not actually detect the socket is dead,
+				//need to improve another way
 				if (!SockHelper::is_sock_connected(sock)) {
 					std::cout << "socket invalid: " << sock << " , will be erased!" << std::endl;
 					it = g_conns.erase(it);
@@ -158,8 +181,17 @@ void test() {
 				}
 				++it;
 			}
+
+			//TODO: need to confirm that is_sock_connected is valid
+			if (g_conns.size() == 0) {
+				if (!tw.StartTimer()) {  //when no client, reactivate the suicide timer
+					break;  //error happen
+				}
+			}
 		}
 	}
+
+	std::cout << "quit......" << std::endl;
 
 }
 

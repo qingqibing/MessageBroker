@@ -39,6 +39,15 @@
     <ClInclude Include="EventManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TimerWrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ILog.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AsyncObj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
