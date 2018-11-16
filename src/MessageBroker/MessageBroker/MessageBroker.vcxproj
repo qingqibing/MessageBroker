@@ -153,8 +153,8 @@
   <ItemGroup>
     <ClInclude Include="CSockConnection.h" />
     <ClInclude Include="CSocketCtrl.h" />
-    <ClInclude Include="CSocketRWObj.h" />
     <ClInclude Include="CSocketServer.h" />
+    <ClInclude Include="CSockObj.h" />
     <ClInclude Include="EventManager.h" />
     <ClInclude Include="AsyncObj.h" />
     <ClInclude Include="ILog.h" />
@@ -166,8 +166,8 @@
   <ItemGroup>
     <ClCompile Include="CSockConnection.cpp" />
     <ClCompile Include="CSocketCtrl.cpp" />
-    <ClCompile Include="CSocketRWObj.cpp" />
     <ClCompile Include="CSocketServer.cpp" />
+    <ClCompile Include="CSockObj.cpp" />
     <ClCompile Include="EventManager.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="MessageBroker.cpp" />

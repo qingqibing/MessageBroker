@@ -31,8 +31,8 @@ void SockHelper::PrintError(const char* format, va_list args) {
 
 bool SockHelper::is_sock_connected(SOCKET s) {
 	int result = 0;
-	char buf;
-	result = recv(s, &buf, 1, MSG_PEEK);
+	result = recv(s, NULL, 0, MSG_PEEK);  //BLOCKING!!!
+	//result = recv(s, NULL, 0, 0);
 	if (result == SOCKET_ERROR) {
 		return false;
 	}

@@ -22,6 +22,14 @@ CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClien
 		return;
 	}
 
+	int opt = 1;
+	if (setsockopt(m_sockListen, SOL_SOCKET, SO_KEEPALIVE, (const char*)&opt, sizeof(opt))
+		!= 0) {
+		log_e("setsockopt SO_KEEPALIVE failed");
+		CLOSESOCK(m_sockListen);
+		return;
+	}
+
 	GUID acceptex_guid = WSAID_ACCEPTEX;
 	DWORD dwBytes = 0;
 

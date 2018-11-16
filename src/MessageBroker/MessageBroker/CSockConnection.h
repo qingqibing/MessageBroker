@@ -2,17 +2,21 @@
 
 #include <string>
 #include <WinSock2.h>
-#include "CSocketRWObj.h"
+#include "CSockObj.h"
 
-typedef CSocketRWObj::OnReadComplete ReadCallback;
+typedef CSockReadObj::OnReadComplete ReadCallback;
+typedef CSockObj::OnError ErrorCallback;
+typedef CSockWriteObj::OnWriteComplete WriteCallback;
 
 class CSockConnection {
 public:
-	CSockConnection(SOCKET s, ReadCallback cbRead);
+	CSockConnection(SOCKET s, ErrorCallback cbError, ReadCallback cbRead, WriteCallback cbWrite);
 	~CSockConnection();
 
 	const std::string getMessage() const { return m_msg; }
 	const SOCKET getSocket() const { return m_sock; }
+
+	//todo: change to PostReadRequst, PostWriteRequst
 	void write(char* buf, int len);
 	void read();
 
@@ -20,8 +24,8 @@ private:
 
 	SOCKET m_sock;
 	std::string m_msg;
-	CSocketRWObj m_readSock;
-	CSocketRWObj m_writeSock;
+	CSockReadObj m_readSock;
+	CSockWriteObj m_writeSock;
 };
 
 

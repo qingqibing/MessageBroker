@@ -38,6 +38,7 @@ public:
 		auto result = SetWaitableTimer(m_hTimer, &m_duetime, 0, NULL, NULL, FALSE);
 		if (result) {
 			m_started = true;
+			StdLogger::me().log("suicide timer started, commit suicide after: %d miliseconds", (0LL - m_duetime.QuadPart*100/1000000));
 			return true;
 		}
 		else {
@@ -54,6 +55,7 @@ public:
 		auto result = CancelWaitableTimer(m_hTimer);
 		if (result) {
 			m_started = false;
+			StdLogger::me().log("suicide timer stopped");
 			return true;
 		}
 		else {
@@ -66,5 +68,5 @@ public:
 private:
 	HANDLE m_hTimer;
 	LARGE_INTEGER m_duetime;
-	bool m_started;
+	bool m_started;  //indicate the timer has started and not be cancelled
 };

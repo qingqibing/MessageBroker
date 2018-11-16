@@ -4,8 +4,8 @@
 #include <iostream>
 #include <assert.h>
 
-CSockConnection::CSockConnection(SOCKET s, ReadCallback cbRead) : m_sock(s),
-m_readSock(s, true, cbRead, nullptr), m_writeSock(s, false, nullptr, nullptr)
+CSockConnection::CSockConnection(SOCKET s, ErrorCallback cbError, ReadCallback cbRead, WriteCallback cbWrite) 
+	: m_sock(s), m_readSock(s, cbError, cbRead), m_writeSock(s, cbError, cbWrite)
 {
 	m_readSock.Read();
 }

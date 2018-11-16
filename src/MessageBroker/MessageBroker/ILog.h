@@ -30,10 +30,10 @@ public:
 
 	virtual void log(const char* format, ...) {
 		va_list args;
-		va_start(format, args);
+		va_start(args, format);
 
 		char buf[1024];
-		int len = vsprintf_s(buf, format, args);
+		int len = vsprintf_s(buf, 1024, format, args);
 		if (len < 0) {
 			log_e("vsprintf_s");
 			return;

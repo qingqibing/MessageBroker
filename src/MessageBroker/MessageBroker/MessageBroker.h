@@ -8,7 +8,7 @@
 
 #include "CSocketCtrl.h"
 #include "CSocketServer.h"
-#include "CSocketRWObj.h"
+#include "CSockObj.h"
 #include "CSockConnection.h"
 
 class MessageBroker

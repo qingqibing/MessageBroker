@@ -27,9 +27,6 @@
     <ClInclude Include="SockHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CSocketRWObj.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MessageBroker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -46,6 +43,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="AsyncObj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CSockObj.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -65,9 +65,6 @@
     <ClCompile Include="SockHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CSocketRWObj.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -75,6 +72,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="EventManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CSockObj.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

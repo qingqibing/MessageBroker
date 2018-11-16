@@ -1,6 +1,8 @@
 // MessageBroker.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
 
+#define SHORT_TEST
+
 #include "pch.h"
 #include <iostream>
 #include <WinSock2.h>
@@ -13,7 +15,7 @@
 
 #include "CSocketCtrl.h"
 #include "CSocketServer.h"
-#include "CSocketRWObj.h"
+#include "CSockObj.h"
 #include "CSockConnection.h"
 #include "SockHelper.h"
 #include "TimerWrapper.h"
@@ -24,8 +26,19 @@
 
 using json = nlohmann::json;
 
+//todo: conditional compile not working?
+//#ifdef  SHORT_TEST
+static const long SUICIDE_DELAY_TIME = 10 * 1000;  //10 seconds
+
+//#else
+//static const long SUICIDE_DELAY_TIME = 3 * 60 * 1000;  //3 minutes
+
+//#endif //  SHORT_TEST
+
+
 static std::vector<std::shared_ptr<CSockConnection>> g_conns; //all client accept connection
 static std::mutex g_mutex;
+static std::shared_ptr<TimerWrapper> g_twptr;
 
 void send_to_peers(CSockConnection* conn, char* buf, int len) {
 	conn->write(buf, len);
@@ -48,20 +61,41 @@ void sock_recv_complete(SOCKET s, char* buf, int len) {
 	auto it = g_conns.begin();
 	while (it != g_conns.end()) {
 		auto sock = (*it)->getSocket();
-		if (sock == s) {
+		if (sock == s) {  //self
 			(*it)->read();
 			++it;
 			continue;
 		}
 
-		//if (is_sock_invalid(sock)) {
-		//	std::cout << "socket invalid: " << s << " , will be erased!" << std::endl;
-		//	it = g_conns.erase(it);
-		//	//g_handles.erase((*it)->addtoHandles)
-		//	continue;
-		//}
-
+		//check if sock valid
+		/*if (!SockHelper::is_sock_connected(sock)) {
+			std::cout << "socket invalid: " << sock << " , will be erased!" << std::endl;
+			it = g_conns.erase(it);
+			continue;
+		}*/
 		send_to_peers((*it).get(), buf, len);
+		++it;
+	}
+
+	if (g_conns.size() == 0) {
+		//no client connected, start suicide timer
+		g_twptr->StartTimer();
+	}
+}
+
+void sock_send_complate(size_t len) {
+
+}
+
+void sock_error(SOCKET s) {
+	auto it = g_conns.cbegin();
+	while (it != g_conns.cend()) {
+		auto sock = (*it)->getSocket();
+		if (sock == s) {
+			it = g_conns.erase(it);
+			std::cout << "socket invalid: " << sock << " , will be erased!" << std::endl;
+			break;
+		}
 		++it;
 	}
 }
@@ -70,66 +104,22 @@ void on_new_client(SOCKET s) {
 	std::lock_guard<std::mutex> lock(g_mutex);
 
 	std::cout << "new connection:" << s << std::endl;
-	std::shared_ptr<CSockConnection> conn = std::make_shared<CSockConnection>(s, sock_recv_complete);
+	std::shared_ptr<CSockConnection> conn = std::make_shared<CSockConnection>(s, sock_error, sock_recv_complete, sock_send_complate);
 	g_conns.push_back(conn);
-}
-
-//GetStdHandle
-bool IsQuit(HANDLE h) {
-	DWORD fdwSaveOldMode, fdwMode;
-	INPUT_RECORD irBuf[128];
-	DWORD numRead;
-
-	if (!GetConsoleMode(h, &fdwSaveOldMode)) {
-		return false;
-	}
-
-	fdwMode = ENABLE_WINDOW_INPUT;
-	if (!SetConsoleMode(h, fdwMode)) {
-		return false;
-	}
-
-	if (!ReadConsoleInput(
-		h,
-		irBuf,
-		128,
-		&numRead
-	)) {
-		return false;
-	}
-
-	for (int i = 0; i < numRead; ++i) {
-		switch (irBuf[i].EventType)
-		{
-		case KEY_EVENT:
-			if (irBuf[i].Event.KeyEvent.uChar.AsciiChar == 'q') {
-				return true;
-			}
-		default:
-			break;
-		}
-	}
-	return false;
 }
 
 void test() {
 
 	CSocketCtrl::Startup();
 
-	//HANDLE hin = GetStdHandle(STD_INPUT_HANDLE);
-	//if (hin == INVALID_HANDLE_VALUE) {
-	//	return;
-	//}
-
-	const long SUICIDE_DELAY_TIME = 10 * 1000;//3 * 60 * 1000;  //miliseconds
-
 	//create a waitable timer
-	TimerWrapper tw(SUICIDE_DELAY_TIME);
-	if (!tw.StartTimer()) {
+	g_twptr = std::make_shared<TimerWrapper>(SUICIDE_DELAY_TIME);
+	if (!g_twptr->StartTimer()) {
+		StdLogger::me().log("start timer failed");
 		return;
 	}
 
-	EventManager::getInstance().AddEvent(tw.getHandle());  //add waitable timer's handle to the first element in EventManager
+	EventManager::getInstance().AddEvent(g_twptr->getHandle());  //add waitable timer's handle to the first element in EventManager
 
 	CSocketServer server("127.0.0.1", SVR_PORT, on_new_client);
 	server.StartListen();
@@ -138,18 +128,19 @@ void test() {
 
 	while (1)
 	{
+		//todo: event all signal will override other signal
 		auto cnt = EventManager::getInstance().handle_size();
-		DWORD index = WaitForMultipleObjectsEx(cnt, EventManager::getInstance().get_handles().data(), false, TIME_OUT, true);
+		DWORD index = WaitForMultipleObjectsEx(cnt, EventManager::getInstance().get_handles().data(), false, /*TIME_OUT*/INFINITE, true);
 		if (index >= WAIT_OBJECT_0 && index < WAIT_OBJECT_0 + cnt) {
 			if (index == WAIT_OBJECT_0) {
-				//timer singnaled
+				//suicide timer singnaled
 				break;
 			}
 			else if (index == WAIT_OBJECT_0 + 1) {
 				//new connection, the second HANDLE in EventManager is NEW socket connection
 				on_new_client(server.GetAcceptSock());
 				server.StartListen();
-				if (!tw.CancelTimer()) {//once new client is connected, stop the timer
+				if (!g_twptr->CancelTimer()) {//once new client is connected, stop the timer
 					break;  //error happen
 				}
 			}
@@ -163,31 +154,38 @@ void test() {
 			*/
 
 			//do nothing
+			//std::cout << "WAIT_IO_COMPLETION" << std::endl;
 		}
 		else if (index == WAIT_FAILED) {
 			StdLogger::me().log_e("WaitForMultipleObjectsEx");
 		}
 		else if (index == WAIT_TIMEOUT) {
-			auto it = g_conns.cbegin();
-			while (it != g_conns.cend()) {
-				auto sock = (*it)->getSocket();
 
-				//TODO: can not actually detect the socket is dead,
-				//need to improve another way
-				if (!SockHelper::is_sock_connected(sock)) {
-					std::cout << "socket invalid: " << sock << " , will be erased!" << std::endl;
-					it = g_conns.erase(it);
-					continue;
-				}
-				++it;
-			}
+			/*
+			since we use INFINITE on WaitForMultipleObjectsEx, WAIT_TIMEOUT 
+			NEVER gonna happen
+			*/
 
-			//TODO: need to confirm that is_sock_connected is valid
-			if (g_conns.size() == 0) {
-				if (!tw.StartTimer()) {  //when no client, reactivate the suicide timer
-					break;  //error happen
-				}
-			}
+			//auto it = g_conns.cbegin();
+			//while (it != g_conns.cend()) {
+			//	auto sock = (*it)->getSocket();
+
+			//	//TODO: can not actually detect the socket is dead,
+			//	//need to improve another way
+			//	if (!SockHelper::is_sock_connected(sock)) {
+			//		std::cout << "socket invalid: " << sock << " , will be erased!" << std::endl;
+			//		it = g_conns.erase(it);
+			//		continue;
+			//	}
+			//	++it;
+			//}
+
+			////TODO: need to confirm that is_sock_connected is valid
+			//if (g_conns.size() == 0) {
+			//	if (!tw.StartTimer()) {  //when no client, reactivate the suicide timer
+			//		break;  //error happen
+			//	}
+			//}
 		}
 	}
 
