@@ -76,11 +76,6 @@ void sock_recv_complete(SOCKET s, char* buf, int len) {
 		send_to_peers((*it).get(), buf, len);
 		++it;
 	}
-
-	if (g_conns.size() == 0) {
-		//no client connected, start suicide timer
-		g_twptr->StartTimer();
-	}
 }
 
 void sock_send_complate(size_t len) {
@@ -104,7 +99,7 @@ void on_new_client(SOCKET s) {
 	std::lock_guard<std::mutex> lock(g_mutex);
 
 	std::cout << "new connection:" << s << std::endl;
-	std::shared_ptr<CSockConnection> conn = std::make_shared<CSockConnection>(s, sock_error, sock_recv_complete, sock_send_complate);
+	std::shared_ptr<CSockConnection> conn = std::make_shared<CSockConnection>(s, /*sock_error*/nullptr, sock_recv_complete, sock_send_complate);
 	g_conns.push_back(conn);
 }
 
@@ -153,8 +148,22 @@ void test() {
 			if the fAlertable parameter is TRUE.
 			*/
 
-			//do nothing
-			//std::cout << "WAIT_IO_COMPLETION" << std::endl;
+			//check CSockConnection' sock status which been set in CompletionRoutine
+			auto it = g_conns.cbegin();
+			while (it != g_conns.cend()) {
+				if ((*it)->GetSockStatus()) {
+					std::cout << "socket invalid: " << (*it)->getSocket() << " , will be erased!" << std::endl;
+					it = g_conns.erase(it);
+					continue;
+				}
+				++it;
+			}
+
+			if (g_conns.size() == 0) {
+				if (!g_twptr->StartTimer()) {  //when no client, reactivate the suicide timer
+					break;  //error happen
+				}
+			}
 		}
 		else if (index == WAIT_FAILED) {
 			StdLogger::me().log_e("WaitForMultipleObjectsEx");

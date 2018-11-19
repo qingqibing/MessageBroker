@@ -2,23 +2,24 @@
 
 #include <WinSock2.h>
 #include "AsyncObj.h"
+#include "SockHelper.h"
 
 #define DEFAULT_BUF_SIZE 1024
 
 class CSockObj : public EventObj {
 public:
-	typedef void(*OnError)(const SOCKET s);
-
 	CSockObj(SOCKET s, OnError cbError);
 	~CSockObj();
 
 	CSockObj(const CSockObj&) = delete;
 	CSockObj& operator=(const CSockObj&) = delete;
+	void SetOwner(void* pwner) { m_owner = pwner; }
 
 protected:
 	SOCKET m_sock;
 	OnError m_cbError;
 	char* m_buf;
+	void* m_owner;
 
 	static  void CALLBACK completeRoutine(
 		DWORD dwError,
@@ -26,8 +27,8 @@ protected:
 		LPWSAOVERLAPPED lpOverlapped,
 		DWORD dwFlags);
 
-	virtual void Complete() = 0;
-	void RaiseErrorCallback() const;
+	virtual bool Complete() = 0;
+	void RaiseErrorCallback(SOCKET s) const;
 };
 
 
@@ -35,7 +36,6 @@ protected:
 
 class CSockReadObj : public CSockObj {
 public:
-	typedef void(*OnReadComplete)(const SOCKET s, char* data, int len);
 	CSockReadObj(SOCKET s, OnError cbError, OnReadComplete cbRead);
 	~CSockReadObj();
 
@@ -43,7 +43,7 @@ public:
 private:
 	OnReadComplete m_cbRead;
 
-	void Complete() override;
+	bool Complete() override;
 };
 
 
@@ -51,7 +51,6 @@ private:
 
 class CSockWriteObj : public CSockObj {
 public:
-	typedef void(*OnWriteComplete)(size_t bytes);  //write complete callback
 	CSockWriteObj(SOCKET s, OnError cbError, OnWriteComplete cbWrite);
 	~CSockWriteObj();
 
@@ -60,6 +59,6 @@ public:
 private:
 	OnWriteComplete m_cbWrite;
 
-	void Complete() override;
+	bool Complete() override;
 
 };

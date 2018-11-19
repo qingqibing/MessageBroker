@@ -5,7 +5,7 @@
 
 #include "SockHelper.h"
 
-void SockHelper::PrintError(const std::string& func_name) {
+void SockHelper::LogLastError(const std::string& func_name) {
 	std::cout << func_name << " failed with error: " << WSAGetLastError() << std::endl;
 }
 

@@ -2,11 +2,12 @@
 #include <WinSock2.h>
 #include "CSockObj.h"
 #include "SockHelper.h"
+#include "CSockConnection.h"
 
 /*
 CSockObj
 */
-CSockObj::CSockObj(SOCKET s, CSockObj::OnError cberror) 
+CSockObj::CSockObj(SOCKET s, OnError cberror) 
 : m_sock(s), m_cbError(cberror), m_buf(new char[DEFAULT_BUF_SIZE]){
 
 }
@@ -25,12 +26,15 @@ void CSockObj::completeRoutine(DWORD dwError,
 	//TODO: seems that i have some misunderstanding about passing context info in completionRoutine
 	//CSocketRWObj* sockObj = reinterpret_cast<CSocketRWObj*>(lpOverlapped->hEvent);
 	CSockObj* sockObj = reinterpret_cast<CSockObj*>((char*)lpOverlapped - (char*)(&((CSockObj*)0)->m_overlap));
-	sockObj->Complete();
+	if (!sockObj->Complete()) {
+		//((CSockConnection*)(sockObj->m_owner))->SetSockStatus(false);
+		((CSockConnection*)(sockObj->m_owner))->SetSockStatus(true);
+	}
 }
 
-void CSockObj::RaiseErrorCallback() const{
+void CSockObj::RaiseErrorCallback(SOCKET s) const{
 	if (m_cbError != nullptr) {
-		m_cbError(m_sock);
+		m_cbError(s);
 	}
 }
 
@@ -38,12 +42,14 @@ void CSockObj::RaiseErrorCallback() const{
 CSockReadObj
 */
 
-CSockReadObj::CSockReadObj(SOCKET s, CSockObj::OnError cberror, CSockReadObj::OnReadComplete cbRead)
+CSockReadObj::CSockReadObj(SOCKET s, OnError cberror, OnReadComplete cbRead)
 	: CSockObj(s, cberror), m_cbRead(cbRead) {
 
 }
 
-CSockReadObj::~CSockReadObj(){}
+CSockReadObj::~CSockReadObj() {
+	std::cout << "CSockReadObj dtor!" << std::endl;
+}
 
 void CSockReadObj::Read(/*char* pBuf, int len*/) {
 
@@ -65,7 +71,7 @@ void CSockReadObj::Read(/*char* pBuf, int len*/) {
 		completeRoutine
 	)) {
 		if (WSA_IO_PENDING != WSAGetLastError()) {
-			SockHelper::PrintError("WSARecv");
+			SockHelper::LogLastError("WSARecv");
 			std::cout << "close sock: " << m_sock << std::endl;
 			CLOSESOCK(m_sock);
 			return;
@@ -73,7 +79,7 @@ void CSockReadObj::Read(/*char* pBuf, int len*/) {
 	}
 }
 
-void CSockReadObj::Complete() {
+bool CSockReadObj::Complete() {
 	DWORD bytes = 0;
 	DWORD flags = 0;
 
@@ -84,16 +90,16 @@ void CSockReadObj::Complete() {
 		&flags
 	)) {
 		if (WSA_IO_PENDING != WSAGetLastError()) {
-			SockHelper::PrintError("WSAGetOverlappedResult");
+			SockHelper::LogLastError("WSAGetOverlappedResult");
 
-			RaiseErrorCallback();
+			//RaiseErrorCallback(m_sock);
 
 			std::cout << "close sock: " << m_sock << std::endl;
 			if (SOCKET_ERROR == shutdown(m_sock, SD_RECEIVE)) {
-				SockHelper::PrintError("shutdown");
+				SockHelper::LogLastError("shutdown");
 			}
 			CLOSESOCK(m_sock);
-			return;
+			return false;
 		}
 	}
 
@@ -106,6 +112,7 @@ void CSockReadObj::Complete() {
 			m_cbRead(m_sock, temp, bytes);
 		}
 	}
+	return true;
 }
 
 
@@ -114,12 +121,14 @@ void CSockReadObj::Complete() {
 CSockWriteObj
 */
 
-CSockWriteObj::CSockWriteObj(SOCKET s, CSockObj::OnError cbError, CSockWriteObj::OnWriteComplete cbWrite)
+CSockWriteObj::CSockWriteObj(SOCKET s, OnError cbError, OnWriteComplete cbWrite)
 	: CSockObj(s, cbError), m_cbWrite(cbWrite) {
 
 }
 
-CSockWriteObj::~CSockWriteObj(){}
+CSockWriteObj::~CSockWriteObj() {
+	std::cout << "CSOckWriteObj dtor!" << std::endl;
+}
 
 void CSockWriteObj::Write(const char* buf, int len) {
 	WSABUF dataBuf;
@@ -138,7 +147,7 @@ void CSockWriteObj::Write(const char* buf, int len) {
 		&m_overlap,
 		completeRoutine)) {
 		if (WSA_IO_PENDING != WSAGetLastError()) {
-			SockHelper::PrintError("WSASend");
+			SockHelper::LogLastError("WSASend");
 			std::cout << "close sock: " << m_sock << std::endl;
 			CLOSESOCK(m_sock);
 			return;
@@ -147,7 +156,7 @@ void CSockWriteObj::Write(const char* buf, int len) {
 }
 
 
-void CSockWriteObj::Complete() {
+bool CSockWriteObj::Complete() {
 	DWORD bytes = 0;
 	DWORD flags = 0;
 
@@ -158,16 +167,14 @@ void CSockWriteObj::Complete() {
 		&flags
 	)) {
 		if (WSA_IO_PENDING != WSAGetLastError()) {
-			SockHelper::PrintError("WSAGetOverlappedResult");
-
-			RaiseErrorCallback();
+			SockHelper::LogLastError("WSAGetOverlappedResult");
 
 			std::cout << "close sock: " << m_sock << std::endl;
 			if (SOCKET_ERROR == shutdown(m_sock, SD_RECEIVE)) {
-				SockHelper::PrintError("shutdown");
+				SockHelper::LogLastError("shutdown");
 			}
 			CLOSESOCK(m_sock);
-			return;
+			return false;
 		}
 	}
 
@@ -177,4 +184,5 @@ void CSockWriteObj::Complete() {
 			m_cbWrite(bytes);
 		}
 	}
+	return true;
 }
