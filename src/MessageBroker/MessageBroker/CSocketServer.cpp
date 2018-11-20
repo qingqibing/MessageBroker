@@ -22,6 +22,18 @@ CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClien
 		return;
 	}
 
+	/*
+	Keep-alive packets MUST only be sent when no data or
+	acknowledgement packets have been received for the
+	connection within an interval.  This interval MUST be
+	configurable and MUST default to no less than two hours.
+
+	It is extremely important to remember that ACK segments that
+	contain no data are not reliably transmitted by TCP.
+	Consequently, if a keep-alive mechanism is implemented it
+	MUST NOT interpret failure to respond to any specific probe
+	as a dead connection.
+	*/
 	int opt = 1;
 	if (setsockopt(m_sockListen, SOL_SOCKET, SO_KEEPALIVE, (const char*)&opt, sizeof(opt))
 		!= 0) {
@@ -124,26 +136,10 @@ bool CSocketServer::StartListen() {
 	return true;
 }
 
-SOCKET CSocketServer::WaitForNewConnection() {
-	DWORD index = WaitForMultipleObjects(1, &(m_overlap.hEvent), true, INFINITE);
-	if (index == 0) {
-		log_e("new connection!");
-		//ResetEvent(m_overlap.hEvent);
-
-		SOCKET temp = m_sockAccept;
-		/*if (m_newclientCallback != nullptr) {
-			m_newclientCallback(temp);
-		}*/
-		m_sockAccept = INVALID_SOCKET;
-		return temp;
-	}
-}
-
 void CSocketServer::OnComplete() {
 	DWORD bytes = 0;
 	DWORD flags = 0;
 
-	//TODO: does new connection trigger will let WSAGetOverlappedResult or just data transferring?
 	if (!WSAGetOverlappedResult(m_sockListen,
 		&m_overlap,
 		&bytes,
@@ -197,26 +193,12 @@ bool CSocketServer::Shutdown() {
 		return false;
 	}
 
-	if (m_sockAccept == INVALID_SOCKET) {
-		return false;
-	}
-
-	if (SOCKET_ERROR == shutdown(m_sockAccept, SD_SEND)) {
-		log_e("shutdown failed with error: %d", WSAGetLastError());
-		CLOSESOCK(m_sockAccept);
-	}
-
-	//TODO: do some receive then close socket
-	/*do {
-
-	} while(result >0)*/
-
-	CLOSESOCK(m_sockAccept);
+	closesocket(m_sockListen);
 	return true;
 }
 
 
-SOCKET CSocketServer::GetAcceptSock() {
+SOCKET CSocketServer::GetAcceptSock(){
 	if (m_sockAccept == INVALID_SOCKET)
 		assert(0);
 

@@ -27,8 +27,7 @@ void CSockObj::completeRoutine(DWORD dwError,
 	//CSocketRWObj* sockObj = reinterpret_cast<CSocketRWObj*>(lpOverlapped->hEvent);
 	CSockObj* sockObj = reinterpret_cast<CSockObj*>((char*)lpOverlapped - (char*)(&((CSockObj*)0)->m_overlap));
 	if (!sockObj->Complete()) {
-		//((CSockConnection*)(sockObj->m_owner))->SetSockStatus(false);
-		((CSockConnection*)(sockObj->m_owner))->SetSockStatus(true);
+		((CSockConnection*)(sockObj->m_owner))->SetSockWrong(true);
 	}
 }
 
@@ -53,9 +52,10 @@ CSockReadObj::~CSockReadObj() {
 
 void CSockReadObj::Read(/*char* pBuf, int len*/) {
 
+	//todo: multiple buf bennifits?
 	WSABUF dataBuf;
 	dataBuf.buf = m_buf;
-	dataBuf.len = DEFAULT_BUF_SIZE;
+	dataBuf.len = DEFAULT_BUF_SIZE - 1;  // sub 1 because we will use last char to store '\0' terminator
 	/*dataBuf.buf = pBuf;
 	dataBuf.len = len;*/
 
@@ -104,7 +104,7 @@ bool CSockReadObj::Complete() {
 	}
 
 	if (bytes > 0) {
-		m_buf[bytes] = '\0';  //TODO: if bytes == recvBuf size??
+		m_buf[bytes] = '\0';
 		std::cout << "recved: " << bytes << " bytes.\n" << m_buf << std::endl;
 		if (m_cbRead != nullptr) {
 			char temp[DEFAULT_BUF_SIZE];

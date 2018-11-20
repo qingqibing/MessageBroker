@@ -54,7 +54,7 @@ bool is_sock_invalid(SOCKET s) {
 	return false;
 }
 
-//todo: TCP keep alive working or not? with no data transfer in 2 minutes, the connection will be dropped forcely
+//todo: add timestamp
 
 void sock_recv_complete(SOCKET s, char* buf, int len) {
 	std::lock_guard<std::mutex> lock(g_mutex);
@@ -129,7 +129,6 @@ void test() {
 
 	while (1)
 	{
-		//todo: event all signal will override other signal
 		auto cnt = EventManager::getInstance().handle_size();
 		DWORD index = WaitForMultipleObjectsEx(cnt, EventManager::getInstance().get_handles().data(), false, /*TIME_OUT*/INFINITE, true);
 		if (index >= WAIT_OBJECT_0 && index < WAIT_OBJECT_0 + cnt) {
@@ -157,7 +156,7 @@ void test() {
 			//check CSockConnection' sock status which been set in CompletionRoutine
 			auto it = g_conns.cbegin();
 			while (it != g_conns.cend()) {
-				if ((*it)->GetSockStatus()) {
+				if ((*it)->GetSockWrong()) {
 					std::cout << "socket invalid: " << (*it)->GetSocket() << " , will be erased!" << std::endl;
 					it = g_conns.erase(it);
 					continue;
@@ -180,27 +179,6 @@ void test() {
 			since we use INFINITE on WaitForMultipleObjectsEx, WAIT_TIMEOUT 
 			NEVER gonna happen
 			*/
-
-			//auto it = g_conns.cbegin();
-			//while (it != g_conns.cend()) {
-			//	auto sock = (*it)->getSocket();
-
-			//	//TODO: can not actually detect the socket is dead,
-			//	//need to improve another way
-			//	if (!SockHelper::is_sock_connected(sock)) {
-			//		std::cout << "socket invalid: " << sock << " , will be erased!" << std::endl;
-			//		it = g_conns.erase(it);
-			//		continue;
-			//	}
-			//	++it;
-			//}
-
-			////TODO: need to confirm that is_sock_connected is valid
-			//if (g_conns.size() == 0) {
-			//	if (!tw.StartTimer()) {  //when no client, reactivate the suicide timer
-			//		break;  //error happen
-			//	}
-			//}
 		}
 	}
 
