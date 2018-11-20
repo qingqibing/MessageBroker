@@ -1,8 +1,5 @@
 // MessageBroker.cpp : This file contains the 'main' function. Program execution begins and ends there.
 //
-
-#define SHORT_TEST
-
 #include "pch.h"
 #include <iostream>
 #include <WinSock2.h>
@@ -26,17 +23,19 @@
 
 using json = nlohmann::json;
 
-//todo: conditional compile not working?
-//#ifdef  SHORT_TEST
+//#define SHORT_TEST
+
+
+#ifdef SHORT_TEST
 static const long SUICIDE_DELAY_TIME = 10 * 1000;  //10 seconds
 
-//#else
-//static const long SUICIDE_DELAY_TIME = 3 * 60 * 1000;  //3 minutes
+#else
+static const long SUICIDE_DELAY_TIME = 3 * 60 * 1000;  //3 minutes
 
-//#endif //  SHORT_TEST
+#endif //  SHORT_TEST
 
 
-static std::vector<std::shared_ptr<CSockConnection>> g_conns; //all client accept connection
+static std::vector<std::unique_ptr<CSockConnection>> g_conns; //all client accept connection
 static std::mutex g_mutex;
 static std::shared_ptr<TimerWrapper> g_twptr;
 
@@ -54,6 +53,8 @@ bool is_sock_invalid(SOCKET s) {
 	}
 	return false;
 }
+
+//todo: TCP keep alive working or not? with no data transfer in 2 minutes, the connection will be dropped forcely
 
 void sock_recv_complete(SOCKET s, char* buf, int len) {
 	std::lock_guard<std::mutex> lock(g_mutex);
@@ -99,8 +100,13 @@ void on_new_client(SOCKET s) {
 	std::lock_guard<std::mutex> lock(g_mutex);
 
 	std::cout << "new connection:" << s << std::endl;
-	std::shared_ptr<CSockConnection> conn = std::make_shared<CSockConnection>(s, /*sock_error*/nullptr, sock_recv_complete, sock_send_complate);
-	g_conns.push_back(conn);
+
+	//use emplace_back instead of push_back can avoid unnecessary copy/move 
+	//and emplace_back will do perfect forwarding arguments
+	//in this case, will pass to std::unique_ptr ctor
+	g_conns.emplace_back(new CSockConnection(s, /*sock_error*/nullptr, sock_recv_complete, sock_send_complate));
+	//std::shared_ptr<CSockConnection> conn = std::make_shared<CSockConnection>(s, /*sock_error*/nullptr, sock_recv_complete, sock_send_complate);
+	//g_conns.push_back(conn);
 }
 
 void test() {

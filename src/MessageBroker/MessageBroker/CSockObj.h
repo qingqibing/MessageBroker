@@ -14,12 +14,12 @@ public:
 	CSockObj(const CSockObj&) = delete;
 	CSockObj& operator=(const CSockObj&) = delete;
 	void SetOwner(void* pwner) { m_owner = pwner; }
+	const void* GetOwner() const { return m_owner; }
 
 protected:
 	SOCKET m_sock;
 	OnError m_cbError;
 	char* m_buf;
-	void* m_owner;
 
 	static  void CALLBACK completeRoutine(
 		DWORD dwError,
@@ -29,6 +29,9 @@ protected:
 
 	virtual bool Complete() = 0;
 	void RaiseErrorCallback(SOCKET s) const;
+
+private:
+	void* m_owner;
 };
 
 

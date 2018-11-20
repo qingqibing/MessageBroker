@@ -10,6 +10,9 @@ public:
 	CSockConnection(SOCKET s, OnError cbError, OnReadComplete cbRead, OnWriteComplete cbWrite);
 	~CSockConnection();
 
+	CSockConnection(const CSockConnection&) = delete;
+	CSockConnection& operator=(const CSockConnection&) = delete;
+
 	const std::string getMessage() const { return m_msg; }
 	const SOCKET getSocket() const { return m_sock; }
 

@@ -14,7 +14,7 @@ CSocketCtrl::CSocketCtrl() {
 	WSADATA wsaData;
 	error_code = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (error_code != 0) {
-		SockHelper::PrintError("WSAStartup");
+		SockHelper::LogLastError("WSAStartup");
 	}
 
 }
@@ -22,7 +22,7 @@ CSocketCtrl::CSocketCtrl() {
 CSocketCtrl::~CSocketCtrl() {
 	error_code = WSACleanup();
 	if (error_code != 0) {
-		SockHelper::PrintError("WSACleanup");
+		SockHelper::LogLastError("WSACleanup");
 	}
 }
 
