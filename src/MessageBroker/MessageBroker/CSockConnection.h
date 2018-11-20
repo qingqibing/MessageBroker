@@ -13,12 +13,12 @@ public:
 	CSockConnection(const CSockConnection&) = delete;
 	CSockConnection& operator=(const CSockConnection&) = delete;
 
-	const std::string getMessage() const { return m_msg; }
-	const SOCKET getSocket() const { return m_sock; }
+	const std::string GetMessage() const { return m_msg; }
+	const SOCKET GetSocket() const { return m_sock; }
 
 	//todo: change to PostReadRequst, PostWriteRequst
-	void write(char* buf, int len);
-	void read();
+	void PostWriteRequest(char* buf, int len);
+	void PostReadRequest();
 
 	void SetSockStatus(bool sockWrong) { m_sockWrong = sockWrong; }
 	bool GetSockStatus() const{ return m_sockWrong; }

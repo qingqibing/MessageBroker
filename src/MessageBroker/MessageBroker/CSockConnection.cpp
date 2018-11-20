@@ -17,11 +17,11 @@ CSockConnection::~CSockConnection() {
 	//assert(0);
 }
 
-void CSockConnection::write(char* buf, int len) {
+void CSockConnection::PostWriteRequest(char* buf, int len) {
 	m_writeSock.Write(buf, len);
 }
 
-void CSockConnection::read() {
+void CSockConnection::PostReadRequest() {
 	m_readSock.Read();
 }
 

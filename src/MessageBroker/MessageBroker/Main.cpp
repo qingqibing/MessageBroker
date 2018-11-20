@@ -40,7 +40,7 @@ static std::mutex g_mutex;
 static std::shared_ptr<TimerWrapper> g_twptr;
 
 void send_to_peers(CSockConnection* conn, char* buf, int len) {
-	conn->write(buf, len);
+	conn->PostWriteRequest(buf, len);
 }
 
 bool is_sock_invalid(SOCKET s) {
@@ -61,9 +61,9 @@ void sock_recv_complete(SOCKET s, char* buf, int len) {
 
 	auto it = g_conns.begin();
 	while (it != g_conns.end()) {
-		auto sock = (*it)->getSocket();
+		auto sock = (*it)->GetSocket();
 		if (sock == s) {  //self
-			(*it)->read();
+			(*it)->PostReadRequest();
 			++it;
 			continue;
 		}
@@ -79,14 +79,14 @@ void sock_recv_complete(SOCKET s, char* buf, int len) {
 	}
 }
 
-void sock_send_complate(size_t len) {
+void sock_send_complete(size_t len) {
 
 }
 
 void sock_error(SOCKET s) {
 	auto it = g_conns.cbegin();
 	while (it != g_conns.cend()) {
-		auto sock = (*it)->getSocket();
+		auto sock = (*it)->GetSocket();
 		if (sock == s) {
 			it = g_conns.erase(it);
 			std::cout << "socket invalid: " << sock << " , will be erased!" << std::endl;
@@ -104,7 +104,7 @@ void on_new_client(SOCKET s) {
 	//use emplace_back instead of push_back can avoid unnecessary copy/move 
 	//and emplace_back will do perfect forwarding arguments
 	//in this case, will pass to std::unique_ptr ctor
-	g_conns.emplace_back(new CSockConnection(s, /*sock_error*/nullptr, sock_recv_complete, sock_send_complate));
+	g_conns.emplace_back(new CSockConnection(s, /*sock_error*/nullptr, sock_recv_complete, sock_send_complete));
 	//std::shared_ptr<CSockConnection> conn = std::make_shared<CSockConnection>(s, /*sock_error*/nullptr, sock_recv_complete, sock_send_complate);
 	//g_conns.push_back(conn);
 }
@@ -158,7 +158,7 @@ void test() {
 			auto it = g_conns.cbegin();
 			while (it != g_conns.cend()) {
 				if ((*it)->GetSockStatus()) {
-					std::cout << "socket invalid: " << (*it)->getSocket() << " , will be erased!" << std::endl;
+					std::cout << "socket invalid: " << (*it)->GetSocket() << " , will be erased!" << std::endl;
 					it = g_conns.erase(it);
 					continue;
 				}
