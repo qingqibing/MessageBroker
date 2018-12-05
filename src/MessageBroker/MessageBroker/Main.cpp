@@ -24,8 +24,6 @@
 
 using json = nlohmann::json;
 
-//#define SHORT_TEST
-
 
 #ifdef _DEBUG
 static const long SUICIDE_DELAY_TIME = 10 * 1000;  //10 seconds
@@ -42,17 +40,6 @@ static std::unique_ptr<TimerWrapper> g_twptr;//(new TimerWrapper(SUICIDE_DELAY_T
 
 void send_to_peers(CSockConnection* conn, char* buf, int len) {
 	conn->PostWriteRequest(buf, len);
-}
-
-bool is_sock_invalid(SOCKET s) {
-	if (s == INVALID_SOCKET) return true;
-	int error;
-	int error_size = sizeof(error);
-	int result = getsockopt(s, SOL_SOCKET, SO_ERROR, (char*)&error, &error_size);
-	if (result == SOCKET_ERROR || error != 0) {
-		return true;
-	}
-	return false;
 }
 
 //todo: add timestamp
@@ -106,8 +93,6 @@ void on_new_client(SOCKET s) {
 	//and emplace_back will do perfect forwarding arguments
 	//in this case, will pass to std::unique_ptr ctor
 	g_conns.emplace_back(new CSockConnection(s, /*sock_error*/nullptr, sock_recv_complete, sock_send_complete));
-	//std::shared_ptr<CSockConnection> conn = std::make_shared<CSockConnection>(s, /*sock_error*/nullptr, sock_recv_complete, sock_send_complate);
-	//g_conns.push_back(conn);
 }
 
 void test() {
@@ -115,8 +100,6 @@ void test() {
 	CSocketCtrl::Startup();
 
 	//create a waitable timer
-	//g_twptr = std::make_shared<TimerWrapper>(SUICIDE_DELAY_TIME);
-	//g_twptr = std::move(std::unique<TimerWrapper>(SUICIDE_DELAY_TIME));
 	g_twptr = make_unique<TimerWrapper>(SUICIDE_DELAY_TIME);
 
 	if (!g_twptr->StartTimer()) {
