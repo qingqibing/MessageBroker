@@ -17,6 +17,7 @@
 #include "SockHelper.h"
 #include "TimerWrapper.h"
 #include "ILog.h"
+#include "common_template.h"
 
 #define SVR_PORT 15555
 #define TIME_OUT 1000  //default time out value: 1s
@@ -26,18 +27,18 @@ using json = nlohmann::json;
 //#define SHORT_TEST
 
 
-#ifdef SHORT_TEST
+#ifdef _DEBUG
 static const long SUICIDE_DELAY_TIME = 10 * 1000;  //10 seconds
 
 #else
 static const long SUICIDE_DELAY_TIME = 3 * 60 * 1000;  //3 minutes
 
-#endif //  SHORT_TEST
+#endif //  _DEBUG
 
 
 static std::vector<std::unique_ptr<CSockConnection>> g_conns; //all client accept connection
 static std::mutex g_mutex;
-static std::shared_ptr<TimerWrapper> g_twptr;
+static std::unique_ptr<TimerWrapper> g_twptr;//(new TimerWrapper(SUICIDE_DELAY_TIME));
 
 void send_to_peers(CSockConnection* conn, char* buf, int len) {
 	conn->PostWriteRequest(buf, len);
@@ -114,7 +115,10 @@ void test() {
 	CSocketCtrl::Startup();
 
 	//create a waitable timer
-	g_twptr = std::make_shared<TimerWrapper>(SUICIDE_DELAY_TIME);
+	//g_twptr = std::make_shared<TimerWrapper>(SUICIDE_DELAY_TIME);
+	//g_twptr = std::move(std::unique<TimerWrapper>(SUICIDE_DELAY_TIME));
+	g_twptr = make_unique<TimerWrapper>(SUICIDE_DELAY_TIME);
+
 	if (!g_twptr->StartTimer()) {
 		StdLogger::me().log("start timer failed");
 		return;
@@ -201,6 +205,7 @@ void test_json() {
 
 int main()
 {
+	//todo: use windows message loop to see if better to pass message
 	test();
 	std::cin.get();
 }

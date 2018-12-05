@@ -29,6 +29,7 @@ public:
 	//then call WIN32 API SetWaitableTimer
 	bool StartTimer() {
 		if (m_hTimer == NULL) {
+			assert(0);
 			return false;
 		}
 		if (m_started) {

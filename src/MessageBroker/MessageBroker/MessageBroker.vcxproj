@@ -151,6 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="common_template.h" />
     <ClInclude Include="CSockConnection.h" />
     <ClInclude Include="CSocketCtrl.h" />
     <ClInclude Include="CSocketServer.h" />

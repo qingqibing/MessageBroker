@@ -4,6 +4,7 @@
 #include <iostream>
 #include <assert.h>
 
+//todo: consider use virtual method to expose event handler?
 CSockConnection::CSockConnection(SOCKET s, OnError cbError, OnReadComplete cbRead, OnWriteComplete cbWrite)
 	: m_sock(s), m_readSock(s, cbError, cbRead), m_writeSock(s, cbError, cbWrite), m_sockWrong(false)
 {
