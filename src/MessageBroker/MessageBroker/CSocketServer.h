@@ -6,7 +6,8 @@
 #include "EventManager.h"
 #include "AsyncObj.h"
 
-typedef void(*OnNewClient)(SOCKET s);
+using OnNewClient = void(*)(SOCKET s);
+
 //implement the basic socketserver
 //without business logic in it
 class CSocketServer : public EventObj

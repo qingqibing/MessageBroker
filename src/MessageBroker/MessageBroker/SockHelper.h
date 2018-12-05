@@ -4,9 +4,10 @@
 #include <string>
 
 #define CLOSESOCK(s) if(INVALID_SOCKET != s){closesocket(s); s=INVALID_SOCKET;}
-typedef void(*OnError)(const SOCKET s);
-typedef void(*OnReadComplete)(const SOCKET s, char* data, int len);
-typedef void(*OnWriteComplete)(size_t bytes);  //write complete callback
+
+using OnError = void(*)(const SOCKET s);
+using OnReadComplete = void(*)(const SOCKET s, char* data, int len);
+using OnWriteComplete = void(*)(size_t bytes);
 
 
 class SockHelper
