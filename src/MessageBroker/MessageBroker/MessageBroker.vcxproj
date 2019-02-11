@@ -161,6 +161,7 @@
     <ClInclude Include="ILog.h" />
     <ClInclude Include="MessageBroker.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="QPCTimestamp.h" />
     <ClInclude Include="SockHelper.h" />
     <ClInclude Include="TimerWrapper.h" />
   </ItemGroup>

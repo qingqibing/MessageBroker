@@ -4,9 +4,14 @@
 #include <string>
 #include <iostream>
 #include <varargs.h>
+#include "QPCTimestamp.h"
+
+#define MAX_LOG_SIZE 10240
 
 class ILog {
+
 public:
+
 	virtual void log_e(const std::string& func_name) = 0;
 	virtual void log(const char* format, ...) = 0;
 };
@@ -32,8 +37,13 @@ public:
 		va_list args;
 		va_start(args, format);
 
-		char buf[1024];
-		int len = vsprintf_s(buf, 1024, format, args);
+		char buf[MAX_LOG_SIZE];
+		SYSTEMTIME time;  //system time
+		GetLocalTime(&time);
+		int len = sprintf_s(buf, "[%04d/%02d/%02d %02d:%02d:%02d %03d]   ", time.wYear, time.wMonth, time.wDay,
+			time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
+
+		len += vsprintf_s(buf + len, MAX_LOG_SIZE - len, format, args);
 		if (len < 0) {
 			log_e("vsprintf_s");
 			return;

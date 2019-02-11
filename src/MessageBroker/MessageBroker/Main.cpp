@@ -42,7 +42,6 @@ void send_to_peers(CSockConnection* conn, char* buf, int len) {
 	conn->PostWriteRequest(buf, len);
 }
 
-//todo: add timestamp
 
 void sock_recv_complete(SOCKET s, char* buf, int len) {
 	std::lock_guard<std::mutex> lock(g_mutex);
