@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <vector>
 #include <cassert>
+#include "IOCPManager.h"
 
 CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClient newclientCallback)
 	: m_addr(addr), m_port(port), m_newclientCallback(newclientCallback), m_sockListen(INVALID_SOCKET),
@@ -20,6 +21,11 @@ CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClien
 	if (m_sockListen == INVALID_SOCKET) {
 		log_e("open listen socket failed");
 		return;
+	}
+
+	BOOL r =IocpManager::Self().AssiociateIocp((HANDLE)m_sockListen, CK_SOCK_NEW);
+	if (!r) {
+		assert(0);
 	}
 
 	/*
@@ -42,10 +48,22 @@ CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClien
 		return;
 	}
 
-	GUID acceptex_guid = WSAID_ACCEPTEX;
+
+	/*
+	//msdn: https://docs.microsoft.com/en-us/windows/desktop/api/Winsock2/nf-winsock2-wsaioctl
+
+	The function pointer for the AcceptEx function must be obtained at run time
+	by making a call to the WSAIoctl function with the SIO_GET_EXTENSION_FUNCTION_POINTER
+	opcode specified. The input buffer passed to the WSAIoctl function must contain 
+	WSAID_ACCEPTEX, a globally unique identifier (GUID) whose value identifies the 
+	AcceptEx extension function. On success, the output returned by the WSAIoctl 
+	function contains a pointer to the AcceptEx function. The WSAID_ACCEPTEX GUID 
+	is defined in the Mswsock.h header file.
+	*/
+
+	GUID acceptex_guid = WSAID_ACCEPTEX; //AcceptEx GUID
 	DWORD dwBytes = 0;
 
-	//msdn: https://docs.microsoft.com/en-us/windows/desktop/api/Winsock2/nf-winsock2-wsaioctl
 	//call WSAIoctl to get a lpfnAccessEx pointer
 	if (SOCKET_ERROR == WSAIoctl(m_sockListen,
 		SIO_GET_EXTENSION_FUNCTION_POINTER,
@@ -62,7 +80,6 @@ CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClien
 		return;
 	}
 
-	//m_sockAccept = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, )
 	sockaddr_in service;
 	service.sin_family = AF_INET;
 	//service.sin_addr.s_addr = inet_addr(m_addr.c_str());
@@ -106,11 +123,14 @@ bool CSocketServer::StartListen() {
 		return false;
 	}
 
+	//prepare a socket
 	m_sockAccept = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (m_sockAccept == INVALID_SOCKET) {
 		log_e("failed to create accept socket");
 		return false;
 	}
+
+	//IocpManager::Self().AssiociateIocp((HANDLE)m_sockAccept, )
 
 	char buf[1024];
 	DWORD dwBytes = 0;
@@ -118,8 +138,8 @@ bool CSocketServer::StartListen() {
 	//msdn : https://docs.microsoft.com/en-us/windows/desktop/api/mswsock/nf-mswsock-acceptex
 	if (!lpfnAccessEx(m_sockListen,
 		m_sockAccept,
-		buf,
-		0, //read nothing(0 byte) when new connection accepted
+		buf,  //buf normally contains 3 parts:the first block of data sent on a new connection, the local address of the server, and the remote address of the client.
+		0, //read nothing(0 byte) from client, and will imediately return when accept a new connection
 		sizeof(SOCKADDR_STORAGE) + 16,
 		sizeof(SOCKADDR_STORAGE) + 16,
 		&dwBytes,
@@ -136,53 +156,6 @@ bool CSocketServer::StartListen() {
 	return true;
 }
 
-void CSocketServer::OnComplete() {
-	DWORD bytes = 0;
-	DWORD flags = 0;
-
-	if (!WSAGetOverlappedResult(m_sockListen,
-		&m_overlap,
-		&bytes,
-		true,  // flag that specifies whether the function should wait for the pending overlapped operation to complete. 
-		&flags)) {
-		if (WSAGetLastError() != WSA_IO_INCOMPLETE) {
-			log_e("WSAGetOverlappedResult failed with error: %d", WSAGetLastError());
-			return;
-		}
-	}
-
-	//check m_sockAccept
-	char buf[512];
-	WSABUF dataBuf;
-	dataBuf.buf = buf;
-	dataBuf.len = 512;
-
-	if (SOCKET_ERROR == WSARecv(m_sockAccept, &dataBuf, 1, &bytes, &flags, &m_overlap, NULL)) {
-		if (WSA_IO_PENDING == WSAGetLastError()) {
-			log_e("WSARecv failed with error: %d", WSAGetLastError());
-			return;
-		}
-	}
-
-	DWORD result = WSAWaitForMultipleEvents(1, &m_overlap.hEvent, true, INFINITE, true);
-	if (result == WSA_WAIT_FAILED) {
-		log_e("WSAWaitForMultipleEvents failed");
-		return;
-	}
-
-	if (!WSAGetOverlappedResult(m_sockAccept, 
-		&m_overlap, 
-		&bytes, 
-		true,
-		&flags))
-	{
-		log_e("WSAGetOverlappedResult failed");
-		return;
-	}
-
-	dataBuf.buf[bytes] = '\0';
-	log_e("bytes received: %d\n %s", bytes, dataBuf.buf);
-}
 
 void CSocketServer::completionRoutine(DWORD dwError, DWORD cbTransferred, LPOVERLAPPED lpOverlapped, DWORD dwFlags) {
 

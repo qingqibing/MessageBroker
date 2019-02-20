@@ -156,9 +156,11 @@
     <ClInclude Include="CSocketCtrl.h" />
     <ClInclude Include="CSocketServer.h" />
     <ClInclude Include="CSockObj.h" />
+    <ClInclude Include="DerivedOverlapped.h" />
     <ClInclude Include="EventManager.h" />
     <ClInclude Include="AsyncObj.h" />
     <ClInclude Include="ILog.h" />
+    <ClInclude Include="IOCPManager.h" />
     <ClInclude Include="MessageBroker.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="QPCTimestamp.h" />

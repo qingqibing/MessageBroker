@@ -54,6 +54,12 @@
     <ClInclude Include="QPCTimestamp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="IOCPManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DerivedOverlapped.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">

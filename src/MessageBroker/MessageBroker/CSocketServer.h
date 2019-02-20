@@ -22,7 +22,6 @@ public:
 	//accept new connection
 	bool StartListen();
 	bool Shutdown();
-	void OnComplete();
 	SOCKET GetAcceptSock();
 
 private:

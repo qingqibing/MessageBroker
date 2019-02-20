@@ -16,6 +16,8 @@ public:
 	void SetOwner(void* pwner) { m_owner = pwner; }
 	const void* GetOwner() const { return m_owner; }
 
+	bool OnComplete();
+
 protected:
 	SOCKET m_sock;
 	OnError m_cbError;
@@ -26,6 +28,12 @@ protected:
 		DWORD cbTransferred,
 		LPWSAOVERLAPPED lpOverlapped,
 		DWORD dwFlags);
+
+	/*static  void CALLBACK dummy_completeRoutine(
+		DWORD dwError,
+		DWORD cbTransferred,
+		LPWSAOVERLAPPED lpOverlapped,
+		DWORD dwFlags);*/
 
 	virtual bool Complete() = 0;
 	void RaiseErrorCallback(SOCKET s) const;
@@ -43,6 +51,7 @@ public:
 	~CSockReadObj();
 
 	void Read();
+
 private:
 	OnReadComplete m_cbRead;
 

@@ -4,6 +4,7 @@
 #include "SockHelper.h"
 #include "CSockConnection.h"
 
+
 /*
 CSockObj
 */
@@ -31,11 +32,17 @@ void CSockObj::completeRoutine(DWORD dwError,
 	}
 }
 
+
 void CSockObj::RaiseErrorCallback(SOCKET s) const{
 	if (m_cbError != nullptr) {
 		m_cbError(s);
 	}
 }
+
+bool CSockObj::OnComplete() {
+	return Complete();
+}
+
 
 /*
 CSockReadObj
@@ -62,13 +69,15 @@ void CSockReadObj::Read(/*char* pBuf, int len*/) {
 	DWORD recvBytes = 0;
 	DWORD flags = 0;
 
+	m_overlap.SetContext(this);
+
 	if (SOCKET_ERROR == WSARecv(m_sock,
 		&dataBuf,
 		1,
 		&recvBytes,
 		&flags,
 		&m_overlap,  //m_overlap's hEvent can be used to pass context infomation
-		completeRoutine
+		NULL
 	)) {
 		if (WSA_IO_PENDING != WSAGetLastError()) {
 			SockHelper::LogLastError("WSARecv");
@@ -139,13 +148,16 @@ void CSockWriteObj::Write(const char* buf, int len) {
 	//DWORD flags = 0;
 	std::cout << "ready to send to client: " << m_sock << " , data: " << buf << std::endl;
 
+	m_overlap.SetContext(this);
+
 	if (SOCKET_ERROR == WSASend(m_sock,
 		&dataBuf,
 		1,
 		&bytes,
 		0,
 		&m_overlap,
-		completeRoutine)) {
+		NULL
+	)) {
 		if (WSA_IO_PENDING != WSAGetLastError()) {
 			SockHelper::LogLastError("WSASend");
 			std::cout << "close sock: " << m_sock << std::endl;

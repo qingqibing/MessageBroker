@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Windows.h>
+#include "DerivedOverlapped.h"
 #include "EventManager.h"
 
 class AsyncObj {
@@ -14,20 +15,21 @@ public:
 	}
 
 protected:
-	OVERLAPPED m_overlap;
+	//OVERLAPPED m_overlap;
+	DerivedOverlapped m_overlap;
 };
 
 
 class EventObj : public AsyncObj {
 public:
 	EventObj() {
-		ZeroMemory(&m_overlap, sizeof(m_overlap));
+		/*ZeroMemory(&m_overlap, sizeof(m_overlap));
 		m_overlap.hEvent = CreateEvent(NULL, false, false, NULL);
-		EventManager::getInstance().AddEvent(m_overlap.hEvent);
+		EventManager::getInstance().AddEvent(m_overlap.hEvent);*/
 	}
 
 	virtual ~EventObj() {
-		EventManager::getInstance().RemoveEvent(m_overlap.hEvent);
-		CloseHandle(m_overlap.hEvent);
+		/*EventManager::getInstance().RemoveEvent(m_overlap.hEvent);
+		CloseHandle(m_overlap.hEvent);*/
 	}
 };
