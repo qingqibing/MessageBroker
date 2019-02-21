@@ -3,7 +3,6 @@
 #include "pch.h"
 #include "CSocketCtrl.h"
 #include <MSWSock.h>
-#include "EventManager.h"
 #include "AsyncObj.h"
 
 using OnNewClient = void(*)(SOCKET s);
@@ -33,6 +32,5 @@ private:
 	SOCKET m_sockAccept;
 	LPFN_ACCEPTEX lpfnAccessEx;
 
-	void log_e(const char* format, ...);
 	void completionRoutine(DWORD dwError, DWORD cbTransferred, LPOVERLAPPED lpOverlapped, DWORD dwFlags);
 };

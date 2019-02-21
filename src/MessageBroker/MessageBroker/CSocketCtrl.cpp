@@ -5,6 +5,7 @@
 #include <string>
 #include "CSocketCtrl.h"
 #include "SockHelper.h"
+#include "ILog.h"
 
 int CSocketCtrl::error_code = 0;
 
@@ -14,7 +15,7 @@ CSocketCtrl::CSocketCtrl() {
 	WSADATA wsaData;
 	error_code = WSAStartup(MAKEWORD(2, 2), &wsaData);
 	if (error_code != 0) {
-		SockHelper::LogLastError("WSAStartup");
+		LOG_E("WSAStartup");
 	}
 
 }
@@ -22,7 +23,7 @@ CSocketCtrl::CSocketCtrl() {
 CSocketCtrl::~CSocketCtrl() {
 	error_code = WSACleanup();
 	if (error_code != 0) {
-		SockHelper::LogLastError("WSACleanup");
+		LOG_E("WSACleanup");
 	}
 }
 

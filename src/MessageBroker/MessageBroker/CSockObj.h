@@ -23,18 +23,6 @@ protected:
 	OnError m_cbError;
 	char* m_buf;
 
-	static  void CALLBACK completeRoutine(
-		DWORD dwError,
-		DWORD cbTransferred,
-		LPWSAOVERLAPPED lpOverlapped,
-		DWORD dwFlags);
-
-	/*static  void CALLBACK dummy_completeRoutine(
-		DWORD dwError,
-		DWORD cbTransferred,
-		LPWSAOVERLAPPED lpOverlapped,
-		DWORD dwFlags);*/
-
 	virtual bool Complete() = 0;
 	void RaiseErrorCallback(SOCKET s) const;
 

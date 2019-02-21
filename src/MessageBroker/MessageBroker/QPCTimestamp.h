@@ -11,7 +11,7 @@ public:
 	~QPCTimestamp();
 
 	void start();
-	long long elapsed_us() const;  //return unit: miliseconds
+	long long elapsed_us() const;  //return unit: miliseconds , 1s = 1000 000 miliseconds
 
 private:
 	LARGE_INTEGER m_fre;

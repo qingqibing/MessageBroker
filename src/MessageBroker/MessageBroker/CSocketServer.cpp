@@ -8,18 +8,15 @@
 #include <vector>
 #include <cassert>
 #include "IOCPManager.h"
+#include "ILog.h"
 
 CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClient newclientCallback)
 	: m_addr(addr), m_port(port), m_newclientCallback(newclientCallback), m_sockListen(INVALID_SOCKET),
 	m_sockAccept(INVALID_SOCKET), lpfnAccessEx(NULL)
 {
-	//ZeroMemory(&m_overlap, sizeof(m_overlap));
-	//m_overlap.hEvent = CreateEvent(NULL, false, false, NULL);  //create a event for OVERLAPPED obj
-	//EventManager::getInstance().AddEvent(m_overlap.hEvent);
-
 	m_sockListen = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (m_sockListen == INVALID_SOCKET) {
-		log_e("open listen socket failed");
+		LOG_E("WSASocket");
 		return;
 	}
 
@@ -43,7 +40,7 @@ CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClien
 	int opt = 1;
 	if (setsockopt(m_sockListen, SOL_SOCKET, SO_KEEPALIVE, (const char*)&opt, sizeof(opt))
 		!= 0) {
-		log_e("setsockopt SO_KEEPALIVE failed");
+		LOG_E("setsockopt");
 		CLOSESOCK(m_sockListen);
 		return;
 	}
@@ -75,7 +72,7 @@ CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClien
 		NULL,
 		NULL
 	)) {
-		log_e("failed to obtain lpfnAccessEx pointer");
+		LOG_E("WSAIoctl");
 		CLOSESOCK(m_sockListen);
 		return;
 	}
@@ -89,13 +86,13 @@ CSocketServer::CSocketServer(const std::string& addr, const int port, OnNewClien
 	if (SOCKET_ERROR == bind(m_sockListen,
 		(SOCKADDR*)&service,
 		sizeof(service))) {
-		log_e("bind failed with error: %d", WSAGetLastError());
+		LOG_E("bind");
 		CLOSESOCK(m_sockListen);
 		return;
 	}
 
 	if (SOCKET_ERROR == listen(m_sockListen, 100)) {
-		log_e("listen failed with error: %d", WSAGetLastError());
+		LOG_E("SOCK listen");
 		CLOSESOCK(m_sockListen);
 		return;
 	}
@@ -109,8 +106,6 @@ CSocketServer::~CSocketServer() {
 		CLOSESOCK(m_sockAccept);
 	}
 
-	//EventManager::getInstance().RemoveEvent(m_overlap.hEvent);
-	//CloseHandle(m_overlap.hEvent);
 }
 
 bool CSocketServer::StartListen() {
@@ -126,11 +121,9 @@ bool CSocketServer::StartListen() {
 	//prepare a socket
 	m_sockAccept = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_OVERLAPPED);
 	if (m_sockAccept == INVALID_SOCKET) {
-		log_e("failed to create accept socket");
+		LOG_E("WSASocket");
 		return false;
 	}
-
-	//IocpManager::Self().AssiociateIocp((HANDLE)m_sockAccept, )
 
 	char buf[1024];
 	DWORD dwBytes = 0;
@@ -146,7 +139,7 @@ bool CSocketServer::StartListen() {
 		&m_overlap  //get overlap structure, OVERLAPPED' hEvent is signaled when new connection
 	)) {
 		if (WSA_IO_PENDING != WSAGetLastError()) {
-			log_e("AcceptEx failed with error: %d", WSAGetLastError());
+			LOG_E("AcceptEx");
 			CLOSESOCK(m_sockListen);
 			CLOSESOCK(m_sockAccept);
 			return false;
@@ -178,12 +171,4 @@ SOCKET CSocketServer::GetAcceptSock(){
 	SOCKET temp = m_sockAccept;
 	m_sockAccept = INVALID_SOCKET;
 	return temp;
-}
-
-void CSocketServer::log_e(const char* format, ...) {
-	va_list args;
-	va_start(args, format);
-
-	SockHelper::PrintError(format, args);
-	va_end(args);
 }

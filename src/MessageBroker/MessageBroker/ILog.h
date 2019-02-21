@@ -4,9 +4,12 @@
 #include <string>
 #include <iostream>
 #include <varargs.h>
-#include "QPCTimestamp.h"
+//#include "QPCTimestamp.h"
 
 #define MAX_LOG_SIZE 10240
+#define LOG(...) StdLogger::me().log(__VA_ARGS__)
+#define LOG_E(m) StdLogger::me().log_e(m)
+
 
 class ILog {
 
@@ -16,10 +19,6 @@ public:
 	virtual void log(const char* format, ...) = 0;
 };
 
-
-//template<typename... Args>
-//void log(const std::string& format, const Args&... args) {
-//}
 
 class StdLogger : public ILog {
 public:

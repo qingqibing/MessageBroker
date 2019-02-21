@@ -28,7 +28,7 @@ using json = nlohmann::json;
 
 
 #ifdef _DEBUG
-static const long SUICIDE_DELAY_TIME = 60*60 * 1000;  //10 seconds
+static const long SUICIDE_DELAY_TIME = 20 * 1000;  //10 seconds
 
 #else
 static const long SUICIDE_DELAY_TIME = 3 * 60 * 1000;  //3 minutes
@@ -78,7 +78,7 @@ void sock_error(SOCKET s) {
 		auto sock = (*it)->GetSocket();
 		if (sock == s) {
 			it = g_conns.erase(it);
-			std::cout << "socket invalid: " << sock << " , will be erased!" << std::endl;
+			LOG("socket invalid: %d, will be erased!", sock);
 			break;
 		}
 		++it;
@@ -88,7 +88,7 @@ void sock_error(SOCKET s) {
 void on_new_client(SOCKET s) {
 	std::lock_guard<std::mutex> lock(g_mutex);
 
-	std::cout << "new connection:" << s << std::endl;
+	LOG("got new connection: %d", s);
 
 	//use emplace_back instead of push_back can avoid unnecessary copy/move 
 	//and emplace_back will do perfect forwarding arguments
@@ -103,13 +103,15 @@ HANDLE g_timeThread;
 
 unsigned __stdcall timer_thread_func(VOID* param) {
 
-	DWORD ret = WaitForSingleObject(g_timeThread, INFINITE);  //wait for the timer
+	HANDLE hTimer = (HANDLE)param;
+	DWORD ret = WaitForSingleObject(hTimer, INFINITE);  //wait for the timer
 	if (ret == WAIT_OBJECT_0) {
 		//post io completion notification
-		StdLogger::me().log("timer expire, commit suicide!");
+		LOG("timer expire, commit suicide!");
 		BOOL ok = IocpManager::Self().PostQueuedStatus(CK_TIMER, NULL);  //tell the main thread to quit
 		if (!ok) {
 			//todo: how to notify the main thread?
+			assert(0);
 		}
 	}
 	else if (WAIT_IO_COMPLETION) {
@@ -122,28 +124,30 @@ unsigned __stdcall timer_thread_func(VOID* param) {
 	return 0;
 }
 
-//TODO: use I/O completion port, ref csdn article
 void test() {
 
-	CSocketCtrl::Startup();
+	CSocketCtrl::Startup();  //load sock lib
 
 	//create a waitable timer
-	std::unique_ptr<TimerWrapper> g_twptr = make_unique<TimerWrapper>(SUICIDE_DELAY_TIME);
+	std::unique_ptr<TimerWrapper> pTimer = make_unique<TimerWrapper>(SUICIDE_DELAY_TIME);
 
-	if (!g_twptr->StartTimer()) {
-		StdLogger::me().log("start timer failed");
+	if (!pTimer->StartTimer()) {
+		//LOG"start timer failed");
+		LOG("start timer failed");
 		return;
 	}
 
 	unsigned int threadid = 0;
-	g_timeThread = (HANDLE)_beginthreadex(NULL, 0, timer_thread_func, NULL, 0, &threadid);  //start timer thread
-
-	//EventManager::getInstance().AddEvent(g_twptr->getHandle());  //add waitable timer's handle to the first element in EventManager
+	//we are not interested with thread handle, call CloseHandle
+	CloseHandle((HANDLE)_beginthreadex(NULL, 0, timer_thread_func, (void*)pTimer->getHandle(), 0, &threadid));  //start timer thread
 
 	CSocketServer server("127.0.0.1", SVR_PORT, on_new_client);
-	server.StartListen();
+	if (!server.StartListen()) {
+		LOG("server listen failed!");
+		return;
+	}
 
-	std::cout << "server is listening on port " << SVR_PORT << std::endl;
+	LOG("server is listening on port: %d", SVR_PORT);
 
 	while (1)
 	{
@@ -157,6 +161,7 @@ void test() {
 				break;
 			}
 			else if (completionKey == CK_SOCK_NEW) {
+				pTimer->CancelTimer();  //stop timer
 				on_new_client(server.GetAcceptSock());
 				server.StartListen();
 			}
@@ -170,61 +175,9 @@ void test() {
 			}
 		}
 
-		//auto cnt = EventManager::getInstance().handle_size();
-		//DWORD index = WaitForMultipleObjectsEx(cnt, EventManager::getInstance().get_handles().data(), false, /*TIME_OUT*/INFINITE, true);
-		//if (index >= WAIT_OBJECT_0 && index < WAIT_OBJECT_0 + cnt) {
-		//	if (index == WAIT_OBJECT_0) {
-		//		//suicide timer singnaled
-		//		break;
-		//	}
-		//	else if (index == WAIT_OBJECT_0 + 1) {
-		//		//new connection, the second HANDLE in EventManager is NEW socket connection
-		//		on_new_client(server.GetAcceptSock());
-		//		server.StartListen();
-		//		//if (!g_twptr->CancelTimer()) {//once new client is connected, stop the timer
-		//		//	break;  //error happen
-		//		//}
-		//	}
-		//}
-		//else if (index == WAIT_IO_COMPLETION) {
-		//	/*
-		//	The wait was ended by one or more I / O completion routines that were executed.
-		//	The event that was being waited on is not signaled yet.The application must call
-		//	the WSAWaitForMultipleEvents function again.This return value can only be returned
-		//	if the fAlertable parameter is TRUE.
-		//	*/
-
-		//	//check CSockConnection' sock status which been set in CompletionRoutine
-		//	auto it = g_conns.cbegin();
-		//	while (it != g_conns.cend()) {
-		//		if ((*it)->GetSockWrong()) {
-		//			std::cout << "socket invalid: " << (*it)->GetSocket() << " , will be erased!" << std::endl;
-		//			it = g_conns.erase(it);
-		//			continue;
-		//		}
-		//		++it;
-		//	}
-
-		//	if (g_conns.size() == 0) {
-		//		//if (!g_twptr->StartTimer()) {  //when no client, reactivate the suicide timer
-		//		//	break;  //error happen
-		//		//}
-		//	}
-		//}
-		//else if (index == WAIT_FAILED) {
-		//	StdLogger::me().log_e("WaitForMultipleObjectsEx");
-		//}
-		//else if (index == WAIT_TIMEOUT) {
-
-		//	/*
-		//	since we use INFINITE on WaitForMultipleObjectsEx, WAIT_TIMEOUT 
-		//	NEVER gonna happen
-		//	*/
-		//}
 	}
 
-	std::cout << "quit......" << std::endl;
-
+	LOG("quit......");
 }
 
 void test_json() {

@@ -5,8 +5,6 @@
 
 enum {
 	CK_TIMER,
-	CK_SOCK_R,
-	CK_SOCK_W,
 	CK_SOCK_NEW,
 	CK_SOCK_COM
 };
@@ -36,9 +34,6 @@ public:
 	BOOL GetQueuedStatus(LPDWORD lpNumberOfBytes, PULONG_PTR completionKey,
 		_Out_ LPOVERLAPPED *lpOverlapped,
 		_In_  DWORD        dwMilliseconds) {
-		/*OVERLAPPED ov;
-		ULONG_PTR ck;
-		return GetQueuedCompletionStatus(m_iocp, lpNumberOfBytes, &ck, (OVERLAPPED**)&ov, dwMilliseconds);*/
 		return GetQueuedCompletionStatus(m_iocp, lpNumberOfBytes, completionKey, lpOverlapped, dwMilliseconds);
 	}
 

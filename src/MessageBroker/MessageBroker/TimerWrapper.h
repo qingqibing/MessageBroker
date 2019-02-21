@@ -12,7 +12,7 @@ public:
 		m_duetime.QuadPart = - (dueTimeMiliseconds * 1000 * 1000 / 100);  //convert to 100 nanoseconds inteval, relative time
 		m_hTimer = CreateWaitableTimer(NULL, true, NULL);
 		if (m_hTimer == NULL) {
-			StdLogger::me().log_e("CreateWaitableTimer");
+			LOG_E("CreateWaitableTimer");
 			return;
 		}
 	}
@@ -39,7 +39,7 @@ public:
 		auto result = SetWaitableTimer(m_hTimer, &m_duetime, 0, NULL, NULL, FALSE);//period 0 means this timer is trigger only once
 		if (result) {
 			m_started = true;
-			StdLogger::me().log("suicide timer started, commit suicide after: %d miliseconds", (0LL - m_duetime.QuadPart*100/1000000));
+			LOG("suicide timer started, commit suicide after: %d miliseconds", (0LL - m_duetime.QuadPart*100/1000000));
 			return true;
 		}
 		else {
@@ -56,7 +56,7 @@ public:
 		auto result = CancelWaitableTimer(m_hTimer);
 		if (result) {
 			m_started = false;
-			StdLogger::me().log("suicide timer stopped");
+			LOG("suicide timer stopped");
 			return true;
 		}
 		else {

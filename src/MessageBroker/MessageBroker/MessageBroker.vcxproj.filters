@@ -27,9 +27,6 @@
     <ClInclude Include="SockHelper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MessageBroker.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="CSockConnection.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -65,16 +62,10 @@
     <ClCompile Include="pch.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="MessageBroker.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="CSocketCtrl.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CSocketServer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SockHelper.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Main.cpp">
