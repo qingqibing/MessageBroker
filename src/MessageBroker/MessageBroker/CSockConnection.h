@@ -16,11 +16,8 @@ public:
 	const std::string GetMessage() const { return m_msg; }
 	const SOCKET GetSocket() const { return m_sock; }
 
-	void PostWriteRequest(char* buf, int len);
-	void PostReadRequest();
-
-	void SetSockWrong(bool sockWrong) { m_sockWrong = sockWrong; }
-	bool GetSockWrong() const{ return m_sockWrong; }
+	BOOL PostWriteRequest(char* buf, int len);
+	BOOL PostReadRequest();
 
 private:
 
@@ -28,7 +25,6 @@ private:
 	std::string m_msg;
 	CSockReadObj m_readSock;
 	CSockWriteObj m_writeSock;
-	bool m_sockWrong;  //indicate something wrong happened in socket tranzaction
 };
 
 

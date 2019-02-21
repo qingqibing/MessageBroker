@@ -15,6 +15,7 @@ public:
 	CSockObj& operator=(const CSockObj&) = delete;
 	void SetOwner(void* pwner) { m_owner = pwner; }
 	const void* GetOwner() const { return m_owner; }
+	const SOCKET GetSock() const { return m_sock; }
 
 	bool OnComplete();
 
@@ -38,7 +39,7 @@ public:
 	CSockReadObj(SOCKET s, OnError cbError, OnReadComplete cbRead);
 	~CSockReadObj();
 
-	void Read();
+	BOOL Read();
 
 private:
 	OnReadComplete m_cbRead;
@@ -54,7 +55,7 @@ public:
 	CSockWriteObj(SOCKET s, OnError cbError, OnWriteComplete cbWrite);
 	~CSockWriteObj();
 
-	void Write(const char* buf, int len);
+	BOOL Write(const char* buf, int len);
 
 private:
 	OnWriteComplete m_cbWrite;

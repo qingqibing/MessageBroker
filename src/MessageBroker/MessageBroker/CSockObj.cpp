@@ -44,7 +44,7 @@ CSockReadObj::~CSockReadObj() {
 	LOG("CSockReadObj dtor!");
 }
 
-void CSockReadObj::Read(/*char* pBuf, int len*/) {
+BOOL CSockReadObj::Read(/*char* pBuf, int len*/) {
 
 	//todo: multiple buf bennifits?
 	WSABUF dataBuf;
@@ -70,9 +70,10 @@ void CSockReadObj::Read(/*char* pBuf, int len*/) {
 			LOG_E("WSARecv");
 			LOG("close sock: %d", m_sock);
 			CLOSESOCK(m_sock);
-			return;
+			return FALSE;
 		}
 	}
+	return TRUE;
 }
 
 bool CSockReadObj::Complete() {
@@ -125,7 +126,7 @@ CSockWriteObj::~CSockWriteObj() {
 	LOG("CSOckWriteObj dtor!");
 }
 
-void CSockWriteObj::Write(const char* buf, int len) {
+BOOL CSockWriteObj::Write(const char* buf, int len) {
 	WSABUF dataBuf;
 	dataBuf.buf = const_cast<char*>(buf);
 	dataBuf.len = len;
@@ -148,9 +149,10 @@ void CSockWriteObj::Write(const char* buf, int len) {
 			LOG_E("WSASend");
 			LOG("close sock: %d", m_sock);
 			CLOSESOCK(m_sock);
-			return;
+			return FALSE;
 		}
 	}
+	return TRUE;
 }
 
 
@@ -174,8 +176,8 @@ bool CSockWriteObj::Complete() {
 			return false;
 		}
 	}
-	LOG("sent: %d bytes", bytes);
 	if (bytes > 0) {
+		LOG("sent: %d bytes", bytes);
 		if (m_cbWrite != nullptr) {
 			m_cbWrite(bytes);
 		}

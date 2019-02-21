@@ -6,7 +6,8 @@
 enum {
 	CK_TIMER,
 	CK_SOCK_NEW,
-	CK_SOCK_COM
+	CK_SOCK_COM,
+	CK_SOCK_ERR
 };
 
 

@@ -38,12 +38,6 @@ static const long SUICIDE_DELAY_TIME = 3 * 60 * 1000;  //3 minutes
 
 static std::vector<std::unique_ptr<CSockConnection>> g_conns; //all client accept connection
 static std::mutex g_mutex;
-//static std::unique_ptr<TimerWrapper> g_twptr;//(new TimerWrapper(SUICIDE_DELAY_TIME));
-
-void send_to_peers(CSockConnection* conn, char* buf, int len) {
-	conn->PostWriteRequest(buf, len);
-}
-
 
 void sock_recv_complete(SOCKET s, char* buf, int len) {
 	std::lock_guard<std::mutex> lock(g_mutex);
@@ -51,20 +45,25 @@ void sock_recv_complete(SOCKET s, char* buf, int len) {
 	auto it = g_conns.begin();
 	while (it != g_conns.end()) {
 		auto sock = (*it)->GetSocket();
-		if (sock == s) {  //self
-			(*it)->PostReadRequest();
-			++it;
-			continue;
+		if (sock == s) {
+			BOOL r = (*it)->PostReadRequest();
+			if (!r) {
+				it = g_conns.erase(it);
+			}
+			else {
+				++it;
+			}
 		}
-
-		//check if sock valid
-		/*if (!SockHelper::is_sock_connected(sock)) {
-			std::cout << "socket invalid: " << sock << " , will be erased!" << std::endl;
-			it = g_conns.erase(it);
-			continue;
-		}*/
-		send_to_peers((*it).get(), buf, len);
-		++it;
+		else {
+			//send to peers
+			BOOL r = (*it)->PostWriteRequest(buf, len);
+			if (!r) {
+				it = g_conns.erase(it);
+			}
+			else {
+				++it;
+			}
+		}
 	}
 }
 
@@ -86,6 +85,7 @@ void sock_error(SOCKET s) {
 }
 
 void on_new_client(SOCKET s) {
+	//todo: use Critical section
 	std::lock_guard<std::mutex> lock(g_mutex);
 
 	LOG("got new connection: %d", s);
@@ -168,10 +168,52 @@ void test() {
 			else if (completionKey == CK_SOCK_COM) {
 				DerivedOverlapped* pov = reinterpret_cast<DerivedOverlapped*>(pOverlapped);
 				CSockObj* sockObj = reinterpret_cast<CSockObj*>(pov->GetContext());
-				sockObj->OnComplete();
+				if (!sockObj->OnComplete()) {  //deal with sent/recv result
+					//something wrong happen, post CK_SOCK_ERR
+					IocpManager::Self().PostQueuedStatus(CK_SOCK_ERR, pov);
+				}
+			}
+			else if(completionKey == CK_SOCK_ERR){
+				//erase the connection
+				DerivedOverlapped* pov = reinterpret_cast<DerivedOverlapped*>(pOverlapped);
+				CSockObj* sockObj = reinterpret_cast<CSockObj*>(pov->GetContext());
+				SOCKET s = sockObj->GetSock();
+
+				auto it = g_conns.cbegin();
+				while (it != g_conns.cend()) {
+					if ((*it)->GetSocket() == s) {
+						LOG("socket invalid: %d, will be erased!", s);
+						it = g_conns.erase(it);
+						continue;
+					}
+					++it;
+				}
+
+				if (g_conns.size() == 0) {
+					LOG("no client connected, start suicide timer!");
+					if (!pTimer->StartTimer()) {  //when no client, reactivate the suicide timer
+						break;  //error happen
+					}
+				}
+			}
+		}
+		else {
+			//GetQueuedCompletionStatus failed
+			LOG_E("GetQueuedCompletionStatus");
+			DWORD dwError = GetLastError();
+			if (pOverlapped != NULL) { //client close connection unexpectly
+				IocpManager::Self().PostQueuedStatus(CK_SOCK_ERR, pOverlapped);
 			}
 			else {
-				//todo: 
+				if (dwError == ERROR_NETNAME_DELETED) {
+
+				}
+				else if (dwError == WAIT_TIMEOUT) {
+					assert(0);
+				}
+				else {
+					assert(0);
+				}
 			}
 		}
 
