@@ -5,3 +5,7 @@
 - Message format is json
 - Make use of Overlapped I/O
 
+### Branch 
+
+master branch use APC and Event kernel object to get aysnc I/O notification, while IOCP branch use I/O completion port .
+
